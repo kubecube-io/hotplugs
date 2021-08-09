@@ -1,0 +1,164 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: filebeat
+  labels:
+    app: filebeat
+spec:
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 25%
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: filebeat
+  template:
+    metadata:
+      labels:
+        app: filebeat
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: filebeat
+        image: {{ .Values.images.filebeat }}
+        args: [
+          "-c", "/etc/filebeat.yml",
+          "-e",
+          "-path.home", "/usr/share/filebeat",
+          "-path.config", "/usr/share/filebeat",
+          "-path.data", "/usr/share/filebeat/data"
+        ]
+        securityContext:
+          runAsUser: 0
+        env:
+        - name: NODEIP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.hostIP
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5066
+            scheme: HTTP
+          initialDelaySeconds: 30
+          timeoutSeconds: 5
+          periodSeconds: 30
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5066
+            scheme: HTTP
+          initialDelaySeconds: 30
+          timeoutSeconds: 5
+          periodSeconds: 30
+          successThreshold: 1
+          failureThreshold: 3
+        resources:
+          limits:
+            cpu: "{{ .Values.filebeat.resources.limits.cpu }}"
+            memory: "{{ .Values.filebeat.resources.limits.memory }}"
+          requests:
+            cpu: "{{ .Values.filebeat.resources.requests.cpu }}"
+            memory: "{{ .Values.filebeat.resources.requests.memory }}"
+        volumeMounts:
+        - name: config
+          mountPath: /etc/filebeat.yml
+          readOnly: true
+          subPath: filebeat.yml
+        - name: inputs
+          mountPath: /usr/share/filebeat/inputs.d
+          readOnly: true
+        - name: data
+          mountPath: {{ .Values.dataPath }}
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker
+          readOnly: true
+        - name: varlibkubelet
+          mountPath: /var/lib/kubelet
+          mountPropagation: HostToContainer
+          readOnly: true
+        - mountPath: /var/log
+          name: varlog
+          readOnly: true
+        - name: registry
+          mountPath: /usr/share/filebeat/data
+        - mountPath: /etc/localtime
+          name: localtime
+
+      - args:
+        - --logConfDir=/etc/filebeat/inputs.d/
+        - --nodeName=$(HOST_NAME)
+        - --clusterName={{ .Values.clustername }}
+        - --excludeNamespace=""
+        - --updateCRDStatus=true
+        - --fieldsUnderRoot=true
+        - --v=0
+        - --alsologtostderr
+        - --beatUri=http://localhost:5066
+        - --serverPort=5067
+        env:
+        - name: HOST_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        image: {{ .Values.images.ripple }}
+        imagePullPolicy: IfNotPresent
+        name: ripple
+        resources:
+          limits:
+            cpu: "{{ .Values.ripple.resources.limits.cpu }}"
+            memory: "{{ .Values.ripple.resources.limits.memory }}"
+          requests:
+            cpu: "{{ .Values.ripple.resources.requests.cpu }}"
+            memory: "{{ .Values.ripple.resources.requests.memory }}"
+        volumeMounts:
+        - mountPath: /var/run/docker.sock
+          name: dockersocket
+        - name: varlibkubelet
+          mountPath: /var/lib/kubelet
+          readOnly: true
+        - mountPath: /etc/filebeat/inputs.d
+          name: inputs
+        - name: data
+          mountPath: {{ .Values.dataPath }}
+
+      tolerations:
+      - operator: Exists
+      serviceAccount: logagent
+      serviceAccountName: logagent
+      volumes:
+      - name: config
+        configMap:
+          defaultMode: 0600
+          name: filebeat-config
+      - name: varlibdockercontainers
+        hostPath:
+          path: {{ .Values.varlibdockercontainers }}
+      - name: varlibkubelet
+        hostPath:
+          path: {{ .Values.kubeletRootDir }}
+      - name: inputs
+        hostPath:
+          path: /etc/filebeat/inputs.d
+          type: DirectoryOrCreate
+      - name: data
+        hostPath:
+          path: {{ .Values.dataPath }}
+          type: DirectoryOrCreate
+      - name: registry
+        hostPath:
+          path: /etc/filebeat/data
+          type: DirectoryOrCreate
+      - hostPath:
+          path: /etc/localtime
+        name: localtime
+      - hostPath:
+          path: /var/run/docker.sock
+        name: dockersocket
+      - hostPath:
+          path: /var/log
+        name: varlog

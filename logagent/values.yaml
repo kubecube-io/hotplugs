@@ -1,0 +1,40 @@
+---
+images:
+  filebeat: hub.c.163.com/qingzhou/filebeat:7.8.0
+  ripple: hub.c.163.com/qingzhou/ripple:v2.7.1-6d869fe
+
+# required
+clustername: 
+
+elasticsearch:
+  address: elasticsearch-master.elasticsearch.svc:30435
+
+# dockerRootfs
+# 例如/var/lib/docker
+varlibdockercontainers: /var/lib/docker
+
+# kubeletRootfs
+# /var/lib/kubelet
+kubeletRootDir: /var/lib/kubelet
+
+dataPath: /data
+
+
+# required
+filebeat:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 200Mi
+    limits:
+      cpu: 2
+      memory: 1Gi
+
+ripple:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 100Mi
+    limits:
+      cpu: 1
+      memory: 256Mi
