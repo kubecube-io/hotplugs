@@ -1,0 +1,34 @@
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: logagent
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: logagent-rolebinding
+subjects:
+- kind: ServiceAccount
+  name: logagent
+  namespace: {{ .Release.Namespace | quote }}
+roleRef:
+  kind: ClusterRole
+  name: logagent-role
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: logagent-role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["extensions", "apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["netease.com"]
+  resources: ["logconfigs", "nodelogconfigs", "nodelogconfigs/status", "logconfigs/status"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

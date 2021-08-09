@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logseer-config
+data:
+  system.properties: |
+    esHosts={{ .Values.elasticsearch.address }}
+    esUserName=
+    esPassword=
+    esIndexPattern=
+    esVersion=7.x
