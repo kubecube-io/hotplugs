@@ -1,0 +1,126 @@
+apiVersion: monitoring.kubecube.io/v1
+kind: Dashboard
+metadata:
+  name: cube-resource-node
+  namespace: kube-public
+  labels:
+    app: {{ template "kube-prometheus-stack.name" $ }}-dashboard
+{{ include "kube-prometheus-stack.labels" $ | indent 4 }}
+spec:
+  title: cube-resource-node
+  rows:
+  - name: 基础资源
+    panels:
+    - graph:
+        title: CPU 使用量
+        stack: true
+        targets:
+        - prometheus:
+            query: "(
+  (1 - rate(node_cpu_seconds_total{job=\"node-exporter\", mode=\"idle\", node=\"$node\"}[2m]))
+/ ignoring(cpu) group_left
+  count without (cpu)( node_cpu_seconds_total{job=\"node-exporter\", mode=\"idle\", node=\"$node\"})
+)"
+            legend: "CPU核-{{`{{`}}cpu{{`}}`}}"
+        axes:
+          left:
+            unit: percentunit
+    - graph:
+        title: Load Average
+        targets:
+        - prometheus:
+            query: "node_load1{job=\"node-exporter\", node=\"$node\"}"
+            legend: "load1"
+        - prometheus:
+            query: "node_load5{job=\"node-exporter\", node=\"$node\"}"
+            legend: "load5"
+        - prometheus:
+            query: "node_load15{job=\"node-exporter\", node=\"$node\"}"
+            legend: "load15"
+    - graph:
+        title: 内存使用量
+        span: 12
+        stack: true
+        targets:
+        - prometheus:
+            query: "(
+          node_memory_MemTotal_bytes{job=\"node-exporter\", node=\"$node\"}
+        -
+          node_memory_MemFree_bytes{job=\"node-exporter\", node=\"$node\"}
+        -
+          node_memory_Buffers_bytes{job=\"node-exporter\", node=\"$node\"}
+        -
+          node_memory_Cached_bytes{job=\"node-exporter\", node=\"$node\"}
+        )"
+            legend: "RAM Used"
+        - prometheus:
+            query: "node_memory_Cached_bytes{node=\"$node\",job=\"node-exporter\"} + node_memory_Buffers_bytes{node=\"$node\",job=\"node-exporter\"}"
+            legend: "RAM Buffer/Cache"
+        - prometheus:
+            query: "node_memory_MemFree_bytes{job=\"node-exporter\", node=\"$node\"}"
+            legend: "RAM Free"
+    - graph:
+        title: 网络-流入
+        targets:
+        - prometheus:
+            query: "rate(node_network_receive_bytes_total{job=\"node-exporter\", node=\"$node\", device!=\"lo\"}[2m])"
+            legend: "{{`{{`}}device{{`}}`}}"
+        axes:
+          left:
+            unit: Bps
+    - graph:
+        title: 网络-流出
+        targets:
+        - prometheus:
+            query: "rate(node_network_transmit_bytes_total{job=\"node-exporter\", node=\"$node\", device!=\"lo\"}[2m])"
+            legend: "{{`{{`}}device{{`}}`}}"
+        axes:
+          left:
+            unit: Bps
+    - graph:
+        title: 磁盘 I/O
+        targets:
+        - prometheus:
+            query: "rate(node_disk_read_bytes_total{job=\"node-exporter\", node=\"$node\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\"}[2m])"
+            legend: "{{`{{`}}device{{`}}`}}-读"
+        - prometheus:
+            query: "rate(node_disk_written_bytes_total{job=\"node-exporter\", node=\"$node\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\"}[2m])"
+            legend: "{{`{{`}}device{{`}}`}}-写"
+        axes:
+          left:
+            unit: Bps
+    - graph:
+        title: 磁盘 IOPS
+        targets:
+        - prometheus:
+            query: "rate(node_disk_reads_completed_total{node=\"$node\",job=\"node-exporter\",device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\"}[2m])"
+            legend: "{{`{{`}}device{{`}}`}}-读"
+        - prometheus:
+            query: "rate(node_disk_writes_completed_total{node=\"$node\",job=\"node-exporter\",device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\"}[2m])"
+            legend: "{{`{{`}}device{{`}}`}}-写"
+        axes:
+          left:
+            unit: iops
+    - graph:
+        title: 磁盘使用量
+        stack: true
+        targets:
+        - prometheus:
+            query: "sum(
+  max by (device) (
+    node_filesystem_size_bytes{job=\"node-exporter\", node=\"$node\", fstype!=\"\"}
+  -
+    node_filesystem_avail_bytes{job=\"node-exporter\", node=\"$node\", fstype!=\"\"}
+  )
+)"
+            legend: "Used"
+        - prometheus:
+            query: "sum(
+  max by (device) (
+    node_filesystem_avail_bytes{job=\"node-exporter\", node=\"$node\", fstype!=\"\"}
+  )
+)"
+            legend: "Available"
+        axes:
+          left:
+            unit: bytes

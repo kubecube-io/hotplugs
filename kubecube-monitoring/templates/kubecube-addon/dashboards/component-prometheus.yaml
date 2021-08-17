@@ -1,0 +1,167 @@
+apiVersion: monitoring.kubecube.io/v1
+kind: Dashboard
+metadata:
+  name: prometheus
+  labels:
+    scope: component-monitoring
+    component: prometheus
+    app: {{ template "kube-prometheus-stack.name" $ }}-dashboard
+{{ include "kube-prometheus-stack.labels" $ | indent 4 }}
+  namespace: kubecube-monitoring
+spec:
+  title: Prometheus
+  variables:
+  - query:
+      name: cluster
+      label: K8s集群
+      request: "label_values(up, cluster)"
+      datasource: prometheus
+  - query:
+      name: job
+      label: Prometheus 分片
+      request: "label_values(prometheus_build_info{cluster=~\"$cluster\"}, job)"
+      datasource: prometheus
+      multi: true
+  - query:
+      name: instance
+      label: Prometheus 副本
+      request: "label_values(prometheus_build_info{cluster=~\"$cluster\", job=~\"$job\"}, instance)"
+      datasource: prometheus
+      includeAll: true
+  rows:
+  - name: Prometheus 状态
+    panels:
+    - table:
+        title: prometheus 状态
+        datasource: Prometheus
+        span: 12
+        targets:
+        - prometheus:
+            query: "count by (cluster, job, instance, pod, version) (prometheus_build_info{cluster=~\"$cluster\", job=~\"$job\", instance=~\"$instance\"})"
+            instant: true
+            format: table
+        - prometheus:
+            query: "max by (cluster, job, instance,pod) (time() - process_start_time_seconds{cluster=~\"$cluster\", job=~\"$job\", instance=~\"$instance\"})"
+            ref: A
+            instant: true
+            format: table
+        hiddenColumns: ["Time"]
+        styles:
+        - pattern: "cluster"
+          alias: 集群
+        - pattern: "job"
+          alias: Prometheus 分片
+        - pattern: "instance"
+          alias: Prometheus 副本
+        - pattern: "pod"
+          alias: Pod
+        - pattern: "version"
+          alias: 版本
+        - pattern: "Value #A"
+          alias: Uptime
+          unit: s
+  - name: 服务发现
+    panels:
+    - graph:
+        title: Target 同步耗时
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "sum(rate(prometheus_target_sync_length_seconds_sum{cluster=~\"$cluster\",job=~\"$job\",instance=~\"$instance\"}[2m])) by (cluster, scrape_job) * 1e3"
+            legend: "{{`{{`}}scrape_job{{`}}`}}"
+        axes:
+          left:
+            unit: s
+    - graph:
+        title: Targets
+        datasource: Prometheus
+        span: 3
+        targets:
+        - prometheus:
+            query: "sum(prometheus_sd_discovered_targets{cluster=~\"$cluster\",job=~\"$job\",instance=~\"$instance\"}) by (cluster, job)"
+            legend: "Targets"
+    - graph:
+        title: Failed Configs
+        datasource: Prometheus
+        span: 3
+        targets:
+        - prometheus:
+            query: "sum(prometheus_sd_failed_configs{cluster=~\"$cluster\",job=~\"$job\",instance=~\"$instance\"}) by (cluster, job)"
+            legend: "{{`{{`}}job{{`}}`}}"
+  - name: 监控采集
+    panels:
+    - graph:
+        title: 采集异常频率
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "sum by (job) (rate(prometheus_target_scrapes_exceeded_body_size_limit_total{cluster=~\"$cluster\"}[2m]))"
+            legend: "exceeded body size limit: {{`{{`}}job{{`}}`}}"
+        - prometheus:
+            query: "sum by (job) (rate(prometheus_target_scrapes_exceeded_sample_limit_total{cluster=~\"$cluster\"}[2m]))"
+            legend: "exceeded sample limit: {{`{{`}}job{{`}}`}}"
+        - prometheus:
+            query: "sum by (job) (rate(prometheus_target_scrapes_sample_duplicate_timestamp_total{cluster=~\"$cluster\"}[2m]))"
+            legend: "duplicate timestamp: {{`{{`}}job{{`}}`}}"
+        - prometheus:
+            query: "sum by (job) (rate(prometheus_target_scrapes_sample_out_of_bounds_total{cluster=~\"$cluster\"}[2m]))"
+            legend: "out of bounds: {{`{{`}}job{{`}}`}}"
+        - prometheus:
+            query: "sum by (job) (rate(prometheus_target_scrapes_sample_out_of_order_total{cluster=~\"$cluster\"}[2m]))"
+            legend: "out of order: {{`{{`}}job{{`}}`}}"
+    - graph:
+        title: Sample 采集速率(Per Second)
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "rate(prometheus_tsdb_head_samples_appended_total{cluster=~\"$cluster\", job=~\"$job\",instance=~\"$instance\"}[2m])"
+            legend: "{{`{{`}}job{{`}}`}} {{`{{`}}instance{{`}}`}}"
+  - name: 存储
+    panels:
+    - graph:
+        title: Head Series 数量
+        stack: true
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "prometheus_tsdb_head_series{cluster=~\"$cluster\",job=~\"$job\",instance=~\"$instance\"}"
+            legend: "{{`{{`}}job{{`}}`}} {{`{{`}}instance{{`}}`}}"
+    - graph:
+        title: Head Chunks 数量
+        stack: true
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "prometheus_tsdb_head_chunks{cluster=~\"$cluster\", job=~\"$job\",instance=~\"$instance\"}"
+            legend: "{{`{{`}}job{{`}}`}} {{`{{`}}instance{{`}}`}}"
+  - name: 查询
+    panels:
+    - graph:
+        title: Query Rate
+        datasource: Prometheus
+        stack: true
+        span: 6
+        targets:
+        - prometheus:
+            query: "rate(prometheus_engine_query_duration_seconds_count{cluster=~\"$cluster\", job=~\"$job\",instance=~\"$instance\",slice=\"inner_eval\"}[5m])"
+            legend: "{{`{{`}}job{{`}}`}} {{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: bps
+    - graph:
+        title: 各阶段查询耗时 90 值
+        datasource: Prometheus
+        stack: true
+        span: 6
+        targets:
+        - prometheus:
+            query: "max by (job, slice) (prometheus_engine_query_duration_seconds{cluster=~\"$cluster\", quantile=\"0.9\",job=~\"$job\",instance=~\"$instance\"}) * 1e3"
+            legend: "{{`{{`}}job{{`}}`}} {{`{{`}}slice{{`}}`}}}"
+        axes:
+          left:
+            unit: s

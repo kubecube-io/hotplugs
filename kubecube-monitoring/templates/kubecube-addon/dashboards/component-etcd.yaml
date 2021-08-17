@@ -1,0 +1,199 @@
+apiVersion: monitoring.kubecube.io/v1
+kind: Dashboard
+metadata:
+  name: etcd
+  labels:
+    scope: component-monitoring
+    component: etcd
+    app: {{ template "kube-prometheus-stack.name" $ }}-dashboard
+{{ include "kube-prometheus-stack.labels" $ | indent 4 }}
+  namespace: kubecube-monitoring
+spec:
+  title: Etcd
+  variables:
+  - query:
+      name: cluster
+      label: K8s集群
+      request: "label_values(up, cluster)"
+      datasource: prometheus
+  - query:
+      name: job
+      label: etcd集群
+      request: "label_values(etcd_server_has_leader, job)"
+      datasource: prometheus
+      includeAll: true
+  rows:
+  - name: etcd 核心监控
+    panels:
+    - singleStat:
+        title: etcd 实例数
+        datasource: Prometheus
+        span: 2
+        targets:
+        - prometheus:
+            query: "sum(etcd_server_has_leader{cluster=\"$cluster\",job=\"$job\"})"
+            instant: true
+    - graph:
+        title: RPC Rate
+        datasource: Prometheus
+        span: 5
+        targets:
+        - prometheus:
+            query: "sum(rate(grpc_server_started_total{cluster=\"$cluster\",job=\"$job\",grpc_type=\"unary\"}[5m]))"
+            legend: "RPC Rate"
+        - prometheus:
+            query: "sum(rate(grpc_server_handled_total{cluster=\"$cluster\",job=\"$job\",grpc_type=\"unary\",grpc_code!=\"OK\"}[5m]))"
+            legend: "RPC Failed Rate"
+        axes:
+          left:
+            unit: ops
+    - graph:
+        title: Active Grpc Streams
+        datasource: Prometheus
+        span: 5
+        targets:
+        - prometheus:
+            query: "sum(grpc_server_started_total{cluster=\"$cluster\",job=\"$job\",grpc_service=\"etcdserverpb.Watch\",grpc_type=\"bidi_stream\"}) - sum(grpc_server_handled_total{cluster=\"$cluster\", job=\"$job\",grpc_service=\"etcdserverpb.Watch\",grpc_type=\"bidi_stream\"})"
+            legend: "Watch Streams"
+        - prometheus:
+            query: "sum(grpc_server_started_total{cluster=\"$cluster\",job=\"$job\",grpc_service=\"etcdserverpb.Lease\",grpc_type=\"bidi_stream\"}) - sum(grpc_server_handled_total{cluster=\"$cluster\", job=\"$job\",grpc_service=\"etcdserverpb.Lease\",grpc_type=\"bidi_stream\"})"
+            legend: "Lease Streams"
+        axes:
+          left:
+            unit: ops
+    - graph:
+        title: 客户端流量-流入速率
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "rate(etcd_network_client_grpc_received_bytes_total{cluster=\"$cluster\",job=\"$job\"}[5m])"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: bps
+    - graph:
+        title: 客户端流量-流出速率
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "rate(etcd_network_client_grpc_sent_bytes_total{cluster=\"$cluster\",job=\"$job\"}[5m])"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: bps
+    - graph:
+        title: Peer 流量-流入速率
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "rate(etcd_network_peer_received_bytes_total{cluster=\"$cluster\",job=\"$job\"}[5m])"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: bps
+    - graph:
+        title: Peer 流量-流出速率
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "rate(etcd_network_peer_sent_bytes_total{cluster=\"$cluster\",job=\"$job\"}[5m])"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: bps
+    - graph:
+        title: DB 大小
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "etcd_mvcc_db_total_size_in_bytes{cluster=\"$cluster\", job=\"$job\"}"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: byte
+    - graph:
+        title: 刷盘延时 99 值
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.99, sum(rate(etcd_disk_wal_fsync_duration_seconds_bucket{cluster=\"$cluster\", job=\"$job\"}[5m])) by (instance, le))"
+            legend: "{{`{{`}}instance{{`}}`}} WAL fsync"
+        - prometheus:
+            query: "histogram_quantile(0.99, sum(rate(etcd_disk_backend_commit_duration_seconds_bucket{cluster=\"$cluster\", job=\"$job\"}[5m])) by (instance, le))"
+            legend: "{{`{{`}}instance{{`}}`}} DB fsync"
+        axes:
+          left:
+            unit: s
+  - name: Raft 监控
+    panels:
+    - singleStat:
+        title: Raft Pending Proposal Total
+        datasource: Prometheus
+        span: 2
+        targets:
+        - prometheus:
+            query: "sum(etcd_server_proposals_pending{cluster=\"$cluster\", job=\"$job\"})"
+            instant: true
+    - graph:
+        title: Raft Proposal Rate
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "sum(rate(etcd_server_proposals_failed_total{cluster=\"$cluster\", job=\"$job\"}[5m]))"
+            legend: "Proposal Failure Rate"
+        - prometheus:
+            query: "sum(rate(etcd_server_proposals_committed_total{cluster=\"$cluster\",job=\"$cluster\"}[5m]))"
+            legend: "Proposal Commit Rate"
+        - prometheus:
+            query: "sum(rate(etcd_server_proposals_applied_total{cluster=\"$cluster\", job=\"$cluster\"}[5m]))"
+            legend: "Proposal Apply Rate"
+        axes:
+          left:
+            unit: ops
+    - graph:
+        title: 集群选主次数(Per Day)
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "changes(etcd_server_leader_changes_seen_total{cluster=\"$cluster\",job=\"$job\"}[1d])"
+            legend: "{{`{{`}}instance{{`}}`}} Total Leader Elections Per Day"
+  - name: 资源使用
+    panels:
+    - graph:
+        title: Memory
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "process_resident_memory_bytes{job=\"$job\", cluster=\"$cluster\"}"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: byte
+    - graph:
+        title: CPU 使用量
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "rate(process_cpu_seconds_total{job=\"$job\", cluster=\"$cluster\"}[2m])"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: cores
+    - graph:
+        title: goroutine 数量
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "go_goroutines{job=\"$job\", cluster=\"$cluster\"}"
+            legend: "{{`{{`}}instance{{`}}`}}"

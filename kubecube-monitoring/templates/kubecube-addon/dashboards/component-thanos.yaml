@@ -1,0 +1,200 @@
+apiVersion: monitoring.kubecube.io/v1
+kind: Dashboard
+metadata:
+  name: thanos-query
+  labels:
+    scope: component-monitoring
+    component: thanos-query
+    app: {{ template "kube-prometheus-stack.name" $ }}-dashboard
+{{ include "kube-prometheus-stack.labels" $ | indent 4 }}
+  namespace: kubecube-monitoring
+spec:
+  title: Thanos Query
+  variables:
+  - query:
+      name: job
+      label: Thanos
+      request: "label_values(up{job=~\".*thanos-query.*\"}, job)"
+      datasource: prometheus
+  rows:
+  - name: Instant Query API
+    panels:
+    - graph:
+        title: Rate
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "sum by (job, handler, code) (rate(http_requests_total{job=~\"$job\", handler=\"query\"}[2m]))"
+            legend: "{{`{{`}}job{{`}}`}} {{`{{`}}handler{{`}}`}} {{`{{`}}code{{`}}`}}"
+    - graph:
+        title: Duration
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.50, sum by (job, le) (rate(http_request_duration_seconds_bucket{job=~\"$job\", handler=\"query\"}[5m]))) * 1"
+            legend: "p50 {{`{{`}}job{{`}}`}}"
+        - prometheus:
+            query: "histogram_quantile(0.90, sum by (job, le) (rate(http_request_duration_seconds_bucket{job=~\"$job\", handler=\"query\"}[5m]))) * 1"
+            legend: "p90 {{`{{`}}job{{`}}`}}"
+        - prometheus:
+            query: "histogram_quantile(0.99, sum by (job, le) (rate(http_request_duration_seconds_bucket{job=~\"$job\", handler=\"query\"}[5m]))) * 1"
+            legend: "p99 {{`{{`}}job{{`}}`}}"
+    - graph:
+        title: Error
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "sum by (job) (rate(http_requests_total{job=~\"$job\", handler=\"query\",code=~\"5..\"}[2m])) / sum by (job) (rate(http_requests_total{job=~\"$job\", handler=\"query\"}[2m]))"
+            legend: "error"
+  - name: Range Query API
+    panels:
+    - graph:
+        title: Rate
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "sum by (job, handler, code) (rate(http_requests_total{job=~\"$job\", handler=\"query_range\"}[2m]))"
+            legend: "{{`{{`}}job{{`}}`}} {{`{{`}}handler{{`}}`}} {{`{{`}}code{{`}}`}}"
+    - graph:
+        title: Duration
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.50, sum by (job, le) (rate(http_request_duration_seconds_bucket{job=~\"$job\", handler=\"query_range\"}[5m]))) * 1"
+            legend: "p50 {{`{{`}}job{{`}}`}}"
+        - prometheus:
+            query: "histogram_quantile(0.90, sum by (job, le) (rate(http_request_duration_seconds_bucket{job=~\"$job\", handler=\"query_range\"}[5m]))) * 1"
+            legend: "p90 {{`{{`}}job{{`}}`}}"
+        - prometheus:
+            query: "histogram_quantile(0.99, sum by (job, le) (rate(http_request_duration_seconds_bucket{job=~\"$job\", handler=\"query_range\"}[5m]))) * 1"
+            legend: "p99 {{`{{`}}job{{`}}`}}"
+    - graph:
+        title: Error
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "sum by (job) (rate(http_requests_total{job=~\"$job\", handler=\"query_range\",code=~\"5..\"}[2m])) / sum by (job) (rate(http_requests_total{job=~\"$job\", handler=\"query_range\"}[2m]))"
+            legend: "error"
+  - name: Grpc(Unary)
+    panels:
+    - graph:
+        title: Rate
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "sum by (job, grpc_method, grpc_code) (rate(grpc_client_handled_total{job=~\"$job\", grpc_type=\"unary\"}[2m]))"
+            legend: "{{`{{`}}job{{`}}`}} {{`{{`}}grpc_method{{`}}`}} {{`{{`}}grpc_code{{`}}`}}"
+    - graph:
+        title: Duration
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.50, sum by (job, le) (rate(grpc_client_handling_seconds_bucket{job=~\"$job\", grpc_type=\"unary\"}[5m]))) * 1"
+            legend: "p50 {{`{{`}}job{{`}}`}}"
+        - prometheus:
+            query: "histogram_quantile(0.90, sum by (job, le) (rate(grpc_client_handling_seconds_bucket{job=~\"$job\", grpc_type=\"unary\"}[5m]))) * 1"
+            legend: "p90 {{`{{`}}job{{`}}`}}"
+        - prometheus:
+            query: "histogram_quantile(0.99, sum by (job, le) (rate(grpc_client_handling_seconds_bucket{job=~\"$job\", grpc_type=\"unary\"}[5m]))) * 1"
+            legend: "p99 {{`{{`}}job{{`}}`}}"
+    - graph:
+        title: Error
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "sum by (job) (rate(grpc_client_handled_total{grpc_code=~\"Unknown|ResourceExhausted|Internal|Unavailable|DataLoss\",job=~\"$job\", grpc_type=\"unary\"}[2m])) / sum by (job) (rate(grpc_client_handled_total{job=~\"$job\", grpc_type=\"unary\"}[2m]))"
+            legend: "error"
+  - name: Grpc(Stream)
+    panels:
+    - graph:
+        title: Rate
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "sum by (job, grpc_method, grpc_code) (rate(grpc_client_handled_total{job=~\"$job\", grpc_type=\"server_stream\"}[2m]))"
+            legend: "{{`{{`}}job{{`}}`}} {{`{{`}}grpc_method{{`}}`}} {{`{{`}}grpc_code{{`}}`}}"
+    - graph:
+        title: Duration
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.50, sum by (job, le) (rate(grpc_client_handling_seconds_bucket{job=~\"$job\", grpc_type=\"server_stream\"}[5m]))) * 1"
+            legend: "p50 {{`{{`}}job{{`}}`}}"
+        - prometheus:
+            query: "histogram_quantile(0.90, sum by (job, le) (rate(grpc_client_handling_seconds_bucket{job=~\"$job\", grpc_type=\"server_stream\"}[5m]))) * 1"
+            legend: "p90 {{`{{`}}job{{`}}`}}"
+        - prometheus:
+            query: "histogram_quantile(0.99, sum by (job, le) (rate(grpc_client_handling_seconds_bucket{job=~\"$job\", grpc_type=\"server_stream\"}[5m]))) * 1"
+            legend: "p99 {{`{{`}}job{{`}}`}}"
+    - graph:
+        title: Error
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "sum by (job) (rate(grpc_client_handled_total{grpc_code=~\"Unknown|ResourceExhausted|Internal|Unavailable|DataLoss\",job=~\"$job\", grpc_type=\"server_stream\"}[2m])) / sum by (job) (rate(grpc_client_handled_total{job=~\"$job\", grpc_type=\"server_stream\"}[2m]))"
+            legend: "error"
+  - name: DNS
+    panels:
+    - graph:
+        title: Rate
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "sum by (job) (rate(thanos_query_store_apis_dns_lookups_total{job=~\"$job\"}[2m]))"
+            legend: "dns lookup {{`{{`}}job{{`}}`}}"
+        axes:
+          left:
+            unit: s
+    - graph:
+        title: Errors
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "sum by (job) (rate(thanos_query_store_apis_dns_failures_total{job=~\"$job\"}[2m])) / sum by (job) (rate(thanos_query_store_apis_dns_lookups_total{job=~\"$job\"}[2m]))"
+            legend: "error"
+  - name: 资源使用
+    panels:
+    - graph:
+        title: Memory
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "process_resident_memory_bytes{job=\"$job\"}"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: byte
+    - graph:
+        title: CPU 使用量
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "rate(process_cpu_seconds_total{job=\"$job\"}[2m])"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: cores
+    - graph:
+        title: goroutine 数量
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "go_goroutines{job=\"$job\"}"
+            legend: "{{`{{`}}instance{{`}}`}}"

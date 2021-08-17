@@ -1,0 +1,141 @@
+apiVersion: monitoring.kubecube.io/v1
+kind: Dashboard
+metadata:
+  name: kube-controller-manager
+  labels:
+    scope: component-monitoring
+    component: kube-controller-manager
+    app: {{ template "kube-prometheus-stack.name" $ }}-dashboard
+{{ include "kube-prometheus-stack.labels" $ | indent 4 }}
+  namespace: kubecube-monitoring
+spec:
+  title: Kube Controller Manager
+  variables:
+  - query:
+      name: cluster
+      label: 集群
+      request: "label_values(up, cluster)"
+      datasource: prometheus
+  - query:
+      name: instance
+      label: 实例
+      request: "label_values(process_cpu_seconds_total{cluster=\"$cluster\", job=\"kube-controller-manager\"}, instance)"
+      datasource: prometheus
+      includeAll: true
+  rows:
+  - name: controller-manager 核心监控
+    panels:
+    - singleStat:
+        title: Has Leader?
+        datasource: Prometheus
+        span: 3
+        targets:
+        - prometheus:
+            query: "sum(leader_election_master_status{cluster=\"$cluster\",job=\"kube-controller-manager\"})"
+            instant: true
+    - graph:
+        title: 工作队列处理速率
+        datasource: Prometheus
+        span: 9
+        targets:
+        - prometheus:
+            query: "sum(rate(workqueue_adds_total{cluster=\"$cluster\", job=\"kube-controller-manager\", instance=~\"$instance\"}[5m])) by (cluster, instance, name)"
+            legend: "{{`{{`}}instance{{`}}`}} {{`{{`}}name{{`}}`}}"
+        axes:
+          left:
+            unit: ops
+    - graph:
+        title: 工作队列深度
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "sum(rate(workqueue_depth{cluster=\"$cluster\", job=\"kube-controller-manager\", instance=~\"$instance\"}[5m])) by (cluster, instance, name)"
+            legend: "{{`{{`}}instance{{`}}`}} {{`{{`}}name{{`}}`}}"
+    - graph:
+        title: 工作队列处理延时
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.99, sum(rate(workqueue_queue_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-controller-manager\", instance=~\"$instance\"}[5m])) by (cluster, instance, name, le))"
+            legend: "{{`{{`}}instance{{`}}`}} {{`{{`}}name{{`}}`}}"
+        axes:
+          left:
+            unit: s
+  - name: API 请求概览
+    panels:
+    - graph:
+        title: Kube API 请求速率
+        datasource: Prometheus
+        span: 5
+        targets:
+        - prometheus:
+            query: "sum(rate(rest_client_requests_total{job=\"kube-controller-manager\", instance=~\"$instance\",code=~\"2..\"}[2m]))"
+            legend: "2xx"
+        - prometheus:
+            query: "sum(rate(rest_client_requests_total{job=\"kube-controller-manager\", instance=~\"$instance\",code=~\"3..\"}[2m]))"
+            legend: "3xx"
+        - prometheus:
+            query: "sum(rate(rest_client_requests_total{job=\"kube-controller-manager\", instance=~\"$instance\",code=~\"4..\"}[2m]))"
+            legend: "4xx"
+        - prometheus:
+            query: "sum(rate(rest_client_requests_total{job=\"kube-controller-manager\", instance=~\"$instance\",code=~\"5..\"}[2m]))"
+            legend: "5xx"
+        axes:
+          left:
+            unit: reqps
+    - graph:
+        title: Post 请求延迟 99 值
+        datasource: Prometheus
+        span: 7
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-controller-manager\", instance=~\"$instance\", verb=\"POST\"}[5m])) by (verb, url, le))"
+            legend: "{{`{{`}}verb{{`}}`}} {{`{{`}}url{{`}}`}}"
+        axes:
+          left:
+            unit: s
+    - graph:
+        title: Get 请求延迟 99 值
+        datasource: Prometheus
+        span: 12
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-controller-manager\", instance=~\"$instance\", verb=\"GET\"}[5m])) by (verb, url, le))"
+            legend: "{{`{{`}}verb{{`}}`}} {{`{{`}}url{{`}}`}}"
+        axes:
+          left:
+            unit: s
+  - name: 资源使用
+    panels:
+    - graph:
+        title: Memory
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "process_resident_memory_bytes{job=\"kube-controller-manager\",instance=~\"$instance\", cluster=\"$cluster\"}"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: byte
+    - graph:
+        title: CPU 使用量
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "rate(process_cpu_seconds_total{job=\"kube-controller-manager\",instance=~\"$instance\", cluster=\"$cluster\"}[2m])"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: cores
+    - graph:
+        title: goroutine 数量
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "go_goroutines{job=\"kube-controller-manager\",instance=~\"$instance\", cluster=\"$cluster\"}"
+            legend: "{{`{{`}}instance{{`}}`}}"
