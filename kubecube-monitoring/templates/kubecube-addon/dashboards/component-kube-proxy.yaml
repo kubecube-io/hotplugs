@@ -1,0 +1,155 @@
+apiVersion: monitoring.kubecube.io/v1
+kind: Dashboard
+metadata:
+  name: kube-proxy
+  labels:
+    scope: component-monitoring
+    component: kube-proxy
+    app: {{ template "kube-prometheus-stack.name" $ }}-dashboard
+{{ include "kube-prometheus-stack.labels" $ | indent 4 }}
+  namespace: kubecube-monitoring
+spec:
+  title: Kube Proxy
+  variables:
+  - query:
+      name: cluster
+      label: 集群
+      request: "label_values(up, cluster)"
+      datasource: prometheus
+  - query:
+      name: instance
+      label: 实例
+      request: "label_values(kubeproxy_network_programming_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-proxy\"}, instance)"
+      datasource: prometheus
+      includeAll: true
+  rows:
+  - name: Kube-Proxy 核心监控
+    panels:
+    - singleStat:
+        title: Up
+        datasource: Prometheus
+        span: 2
+        targets:
+        - prometheus:
+            query: "sum(up{cluster=\"$cluster\", job=\"kube-proxy\"})"
+            instant: true
+    - graph:
+        title: 路由规则下发速率
+        datasource: Prometheus
+        span: 5
+        targets:
+        - prometheus:
+            query: "sum(rate(kubeproxy_sync_proxy_rules_duration_seconds_count{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\"}[5m]))"
+            legend: "rate"
+        axes:
+          left:
+            unit: ops
+    - graph:
+        title: 路由规则下发延迟 99 值
+        datasource: Prometheus
+        span: 5
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.99,rate(kubeproxy_sync_proxy_rules_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\"}[5m]))"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: s
+    - graph:
+        title: Network Programming Rate
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "sum(rate(kubeproxy_network_programming_duration_seconds_count{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\"}[5m]))"
+            legend: "rate"
+        axes:
+          left:
+            unit: ops
+    - graph:
+        title: Network Programming 延迟 99 值
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.99, sum(rate(kubeproxy_network_programming_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\"}[5m])) by (instance, le))"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: s
+  - name: API 请求概览
+    panels:
+    - graph:
+        title: Kube API 请求速率
+        datasource: Prometheus
+        span: 5
+        targets:
+        - prometheus:
+            query: "sum(rate(rest_client_requests_total{job=\"kube-proxy\", instance=~\"$instance\",code=~\"2..\"}[2m]))"
+            legend: "2xx"
+        - prometheus:
+            query: "sum(rate(rest_client_requests_total{job=\"kube-proxy\", instance=~\"$instance\",code=~\"3..\"}[2m]))"
+            legend: "3xx"
+        - prometheus:
+            query: "sum(rate(rest_client_requests_total{job=\"kube-proxy\", instance=~\"$instance\",code=~\"4..\"}[2m]))"
+            legend: "4xx"
+        - prometheus:
+            query: "sum(rate(rest_client_requests_total{job=\"kube-proxy\", instance=~\"$instance\",code=~\"5..\"}[2m]))"
+            legend: "5xx"
+        axes:
+          left:
+            unit: reqps
+    - graph:
+        title: Post 请求延迟 99 值
+        datasource: Prometheus
+        span: 7
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\", verb=\"POST\"}[5m])) by (verb, url, le))"
+            legend: "{{`{{`}}verb{{`}}`}} {{`{{`}}url{{`}}`}}"
+        axes:
+          left:
+            unit: s
+    - graph:
+        title: Get 请求延迟 99 值
+        datasource: Prometheus
+        span: 12
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\", verb=\"GET\"}[5m])) by (verb, url, le))"
+            legend: "{{`{{`}}verb{{`}}`}} {{`{{`}}url{{`}}`}}"
+        axes:
+          left:
+            unit: s
+  - name: 资源使用
+    panels:
+    - graph:
+        title: Memory
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "process_resident_memory_bytes{job=\"kube-proxy\",instance=~\"$instance\", cluster=\"$cluster\"}"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: byte
+    - graph:
+        title: CPU 使用量
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "rate(process_cpu_seconds_total{job=\"kube-proxy\",instance=~\"$instance\", cluster=\"$cluster\"}[2m])"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: cores
+    - graph:
+        title: goroutine 数量
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "go_goroutines{job=\"kube-proxy\",instance=~\"$instance\", cluster=\"$cluster\"}"
+            legend: "{{`{{`}}instance{{`}}`}}"

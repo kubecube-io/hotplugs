@@ -1,0 +1,205 @@
+apiVersion: monitoring.kubecube.io/v1
+kind: Dashboard
+metadata:
+  name: kubelet
+  labels:
+    scope: component-monitoring
+    component: kubelet
+    app: {{ template "kube-prometheus-stack.name" $ }}-dashboard
+{{ include "kube-prometheus-stack.labels" $ | indent 4 }}
+  namespace: kubecube-monitoring
+spec:
+  title: Kubelet
+  variables:
+  - query:
+      name: cluster
+      label: 集群
+      request: "label_values(up, cluster)"
+      datasource: prometheus
+  - query:
+      name: instance
+      label: 实例
+      request: "label_values(process_cpu_seconds_total{cluster=\"$cluster\", job=\"kubelet\"}, instance)"
+      datasource: prometheus
+      includeAll: true
+  rows:
+  - name: Kubelet 运行状态
+    panels:
+    - singleStat:
+        title: 运行 Kubelet 实例数
+        datasource: Prometheus
+        span: 2
+        targets:
+        - prometheus:
+            query: "sum(kubelet_node_name{cluster=\"$cluster\", job=\"kubelet\", metrics_path=\"/metrics\"})"
+            instant: true
+    - singleStat:
+        title: 运行 Pod 实例数
+        datasource: Prometheus
+        span: 2
+        targets:
+        - prometheus:
+            query: "sum(kubelet_running_pods{cluster=\"$cluster\", job=\"kubelet\", metrics_path=\"/metrics\", instance=~\"$instance\"}) OR sum(kubelet_running_pod_count{cluster=\"$cluster\", job=\"kubelet\", metrics_path=\"/metrics\", instance=~\"$instance\"})"
+            instant: true
+    - singleStat:
+        title: 运行 Container 实例数
+        datasource: Prometheus
+        span: 2
+        targets:
+        - prometheus:
+            query: "sum(kubelet_running_containers{cluster=\"$cluster\", job=\"kubelet\", metrics_path=\"/metrics\", instance=~\"$instance\"}) OR sum(kubelet_running_container_count{cluster=\"$cluster\", job=\"kubelet\", metrics_path=\"/metrics\", instance=~\"$instance\"})"
+            instant: true
+    - singleStat:
+        title: 实际数据卷总数
+        datasource: Prometheus
+        span: 2
+        targets:
+        - prometheus:
+            query: "sum(volume_manager_total_volumes{cluster=\"$cluster\", job=\"kubelet\", metrics_path=\"/metrics\", instance=~\"$instance\", state=\"actual_state_of_world\"})"
+            instant: true
+    - singleStat:
+        title: 期望数据卷总数
+        datasource: Prometheus
+        span: 2
+        targets:
+        - prometheus:
+            query: "sum(volume_manager_total_volumes{cluster=\"$cluster\", job=\"kubelet\", metrics_path=\"/metrics\", instance=~\"$instance\",state=\"desired_state_of_world\"})"
+            instant: true
+    - singleStat:
+        title: Kubelet 配置错误统计
+        datasource: Prometheus
+        span: 2
+        targets:
+        - prometheus:
+            query: "sum(kubelet_node_config_error{cluster=\"$cluster\", job=\"kubelet\", metrics_path=\"/metrics\", instance=~\"$instance\"})"
+            instant: true
+  - name: Kubelet 运行时监控
+    panels:
+    - graph:
+        title: 运行时操作执行速率
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "sum(rate(kubelet_runtime_operations_total{cluster=\"$cluster\",job=\"kubelet\", metrics_path=\"/metrics\",instance=~\"$instance\"}[5m])) by (operation_type, instance)"
+            legend: "{{`{{`}}instance{{`}}`}} {{`{{`}}operation_type{{`}}`}}"
+        axes:
+          left:
+            unit: ops
+    - graph:
+        title: 运行时操作错误率
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "sum(rate(kubelet_runtime_operations_errors_total{cluster=\"$cluster\",job=\"kubelet\", metrics_path=\"/metrics\",instance=~\"$instance\"}[5m])) by (instance, operation_type)"
+            legend: "{{`{{`}}instance{{`}}`}} {{`{{`}}operation_type{{`}}`}}"
+        axes:
+          left:
+            unit: ops
+    - graph:
+        title: 操作延时 99 值
+        datasource: Prometheus
+        span: 12
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.99, sum(rate(kubelet_runtime_operations_duration_seconds_bucket{cluster=\"$cluster\",job=\"kubelet\", metrics_path=\"/metrics\",instance=~\"$instance\"}[5m])) by (instance, operation_type, le))"
+            legend: "{{`{{`}}cluster{{`}}`}} {{`{{`}}instance{{`}}`}} e2e"
+        axes:
+          left:
+            unit: s
+    - graph:
+        title: Pod 启动频率
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "sum(rate(kubelet_pod_start_duration_seconds_count{cluster=\"$cluster\",job=\"kubelet\", metrics_path=\"/metrics\",instance=~\"$instance\"}[5m])) by (instance)"
+            legend: "{{`{{`}}instance{{`}}`}} pod"
+        - prometheus:
+            query: "sum(rate(kubelet_pod_worker_duration_seconds_count{cluster=\"$cluster\",job=\"kubelet\", metrics_path=\"/metrics\",instance=~\"$instance\"}[5m])) by (instance)"
+            legend: "{{`{{`}}instance{{`}}`}} worker"
+        axes:
+          left:
+            unit: ops
+    - graph:
+        title: Pod 启动延时 99 值
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.99, sum(rate(kubelet_pod_start_duration_seconds_count{cluster=\"$cluster\",job=\"kubelet\", metrics_path=\"/metrics\",instance=~\"$instance\"}[5m])) by (instance, le))"
+            legend: "{{`{{`}}instance{{`}}`}} pod"
+        - prometheus:
+            query: "histogram_quantile(0.99, sum(rate(kubelet_pod_worker_duration_seconds_bucket{cluster=\"$cluster\",job=\"kubelet\", metrics_path=\"/metrics\",instance=~\"$instance\"}[5m])) by (instance, le))"
+            legend: "{{`{{`}}instance{{`}}`}} worker"
+        axes:
+          left:
+            unit: s
+  - name: PLEG 监控
+    panels:
+    - graph:
+        title: PLEG relist 频率
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "sum(rate(kubelet_pleg_relist_duration_seconds_count{cluster=\"$cluster\", job=\"kubelet\", metrics_path=\"/metrics\", instance=~\"$instance\"}[5m])) by (instance)"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: ops
+    - graph:
+        title: PLEG relist 间隔
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.99, sum(rate(kubelet_pleg_relist_interval_seconds_bucket{cluster=\"$cluster\",job=\"kubelet\", metrics_path=\"/metrics\",instance=~\"$instance\"}[5m])) by (instance, le))"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: s
+    - graph:
+        title: PLEG relist 延时 99 值
+        datasource: Prometheus
+        span: 12
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.99, sum(rate(kubelet_pleg_relist_duration_seconds_bucket{cluster=\"$cluster\",job=\"kubelet\", metrics_path=\"/metrics\",instance=~\"$instance\"}[5m])) by (instance, le))"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: s
+  - name: 资源使用
+    panels:
+    - graph:
+        title: Memory
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "process_resident_memory_bytes{job=\"kubelet\",instance=~\"$instance\", cluster=\"$cluster\"}"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: byte
+    - graph:
+        title: CPU 使用量
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "rate(process_cpu_seconds_total{job=\"kubelet\",instance=~\"$instance\", cluster=\"$cluster\"}[2m])"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: cores
+    - graph:
+        title: goroutine 数量
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "go_goroutines{job=\"kubelet\",instance=~\"$instance\", cluster=\"$cluster\"}"
+            legend: "{{`{{`}}instance{{`}}`}}"

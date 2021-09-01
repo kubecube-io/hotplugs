@@ -1,0 +1,171 @@
+apiVersion: monitoring.kubecube.io/v1
+kind: Dashboard
+metadata:
+  name: coredns
+  labels:
+    scope: component-monitoring
+    component: coredns
+    app: {{ template "kube-prometheus-stack.name" $ }}-dashboard
+{{ include "kube-prometheus-stack.labels" $ | indent 4 }}
+  namespace: kubecube-monitoring
+spec:
+  title: CoreDNS
+  variables:
+  - query:
+      name: cluster
+      label: 集群
+      request: "label_values(up, cluster)"
+      datasource: prometheus
+  - query:
+      name: instance
+      label: 实例
+      request: "label_values(process_cpu_seconds_total{cluster=\"$cluster\", job=\"coredns\"}, instance)"
+      datasource: prometheus
+      includeAll: true
+  rows:
+  - name: dns 请求状态监控
+    panels:
+    - graph:
+        title: dns 请求速率(by proto)
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "sum(rate(coredns_dns_request_count_total{cluster=\"$cluster\",instance=~\"$instance\"}[5m])) by (proto) or
+sum(rate(coredns_dns_requests_total{cluster=\"$cluster\",instance=~\"$instance\"}[5m])) by (proto)"
+            legend: "{{`{{`}}proto{{`}}`}}"
+        axes:
+          left:
+            unit: ops
+    - graph:
+        title: dns 请求速率(by type)
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "sum(rate(coredns_dns_request_type_count_total{cluster=\"$cluster\",instance=~\"$instance\"}[5m])) by (type) or
+sum(rate(coredns_dns_requests_total{cluster=\"$cluster\",instance=~\"$instance\"}[5m])) by (type)"
+            legend: "{{`{{`}}type{{`}}`}}"
+        axes:
+          left:
+            unit: ops
+    - graph:
+        title: dns 请求速率(by zone)
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "sum(rate(coredns_dns_request_type_count_total{cluster=\"$cluster\",instance=~\"$instance\"}[5m])) by (zone) or
+sum(rate(coredns_dns_requests_total{cluster=\"$cluster\",instance=~\"$instance\"}[5m])) by (zone)"
+            legend: "{{`{{`}}zone{{`}}`}}"
+        axes:
+          left:
+            unit: ops
+    - graph:
+        title: dns 请求(DO位)
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "sum(rate(coredns_dns_request_do_count_total{cluster=\"$cluster\",instance=~\"$instance\"}[5m])) or
+sum(rate(coredns_dns_do_requests_total{cluster=\"$cluster\",instance=~\"$instance\"}[5m]))"
+            legend: "DO"
+        - prometheus:
+            query: "sum(rate(coredns_dns_request_count_total{cluster=\"$cluster\",instance=~\"$instance\"}[5m])) or
+sum(rate(coredns_dns_requests_total{cluster=\"$cluster\",instance=~\"$instance\"}[5m]))"
+            legend: "total"
+        axes:
+          left:
+            unit: ops
+    - graph:
+        title: dns 请求大小(byte)分布
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.99, sum(rate(coredns_dns_request_size_bytes_bucket{cluster=\"$cluster\",instance=~\"$instance\"}[5m])) by (le,proto))"
+            legend: "{{`{{`}}proto{{`}}`}}:99 "
+        - prometheus:
+            query: "histogram_quantile(0.90, sum(rate(coredns_dns_request_size_bytes_bucket{cluster=\"$cluster\",instance=~\"$instance\"}[5m])) by (le,proto))"
+            legend: "{{`{{`}}proto{{`}}`}}:90 "
+        - prometheus:
+            query: "histogram_quantile(0.50, sum(rate(coredns_dns_request_size_bytes_bucket{cluster=\"$cluster\",instance=~\"$instance\"}[5m])) by (le,proto))"
+            legend: "{{`{{`}}proto{{`}}`}}:50 "
+        axes:
+          left:
+            unit: byte
+  - name: dns 响应状态监控
+    panels:
+    - graph:
+        title: dns 响应速率(by rcode)
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "sum(rate(coredns_dns_response_rcode_count_total{cluster=\"$cluster\",instance=~\"$instance\"}[5m])) by (rcode) or
+sum(rate(coredns_dns_responses_total{cluster=\"$cluster\",instance=~\"$instance\"}[5m])) by (rcode)"
+            legend: "{{`{{`}}rcode{{`}}`}}"
+        axes:
+          left:
+            unit: ops
+    - graph:
+        title: dns 响应延时分布
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.99, sum(rate(coredns_dns_request_duration_seconds_bucket{cluster=\"$cluster\",instance=~\"$instance\"}[5m])) by (le))"
+            legend: "99%"
+        - prometheus:
+            query: "histogram_quantile(0.90, sum(rate(coredns_dns_request_duration_seconds_bucket{cluster=\"$cluster\",instance=~\"$instance\"}[5m])) by (le))"
+            legend: "90%"
+        - prometheus:
+            query: "histogram_quantile(0.50, sum(rate(coredns_dns_request_duration_seconds_bucket{cluster=\"$cluster\",instance=~\"$instance\"}[5m])) by (le))"
+            legend: "50%"
+        axes:
+          left:
+            unit: s
+    - graph:
+        title: dns 响应大小(byte)分布
+        datasource: Prometheus
+        span: 12
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.99, sum(rate(coredns_dns_response_size_bytes_bucket{cluster=\"$cluster\",instance=~\"$instance\",proto=\"udp\"}[5m])) by (le,proto))"
+            legend: "{{`{{`}}proto{{`}}`}}:99 "
+        - prometheus:
+            query: "histogram_quantile(0.90, sum(rate(coredns_dns_response_size_bytes_bucket{cluster=\"$cluster\",instance=~\"$instance\",proto=\"udp\"}[5m])) by (le,proto))"
+            legend: "{{`{{`}}proto{{`}}`}}:90 "
+        - prometheus:
+            query: "histogram_quantile(0.50, sum(rate(coredns_dns_response_size_bytes_bucket{cluster=\"$cluster\",instance=~\"$instance\",proto=\"udp\"}[5m])) by (le,proto))"
+            legend: "{{`{{`}}proto{{`}}`}}:50 "
+        axes:
+          left:
+            unit: byte
+  - name: Cache 状态监控
+    panels:
+    - graph:
+        title: Cache 大小
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "sum(coredns_cache_size{cluster=\"$cluster\",instance=~\"$instance\"}) by (type) or sum(coredns_cache_entries{cluster=\"$cluster\",instance=~\"$instance\"}) by (type)"
+            legend: "{{`{{`}}type{{`}}`}}"
+        axes:
+          left:
+            unit: byte
+    - graph:
+        title: Cache 命中率
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "sum(rate(coredns_cache_hits_total{cluster=\"$cluster\",instance=~\"$instance\"}[5m])) by (type)"
+            legend: "hits:{{`{{`}}type{{`}}`}}"
+        - prometheus:
+            query: "sum(rate(coredns_cache_misses_total{cluster=\"$cluster\",instance=~\"$instance\"}[5m])) by (type)"
+            legend: "misses:{{`{{`}}type{{`}}`}}"
+        axes:
+          left:
+            unit: byte

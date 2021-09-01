@@ -1,0 +1,195 @@
+apiVersion: monitoring.kubecube.io/v1
+kind: Dashboard
+metadata:
+  name: kube-apiserver
+  labels:
+    scope: component-monitoring
+    component: kube-apiserver
+    app: {{ template "kube-prometheus-stack.name" $ }}-dashboard
+{{ include "kube-prometheus-stack.labels" $ | indent 4 }}
+  namespace: kubecube-monitoring
+spec:
+  title: Kube Apiserver
+  variables:
+  - query:
+      name: cluster
+      label: 集群
+      request: "label_values(up, cluster)"
+      datasource: prometheus
+  - query:
+      name: instance
+      label: 实例
+      request: "label_values(apiserver_request_total{job=\"apiserver\", cluster=\"$cluster\"}, instance)"
+      datasource: prometheus
+      includeAll: true
+  rows:
+  - name: APIServer - SLO
+    panels:
+    - singleStat:
+        title: Availability (30d) > 99.000%
+        datasource: Prometheus
+        span: 3
+        unit: percentunit
+        targets:
+        - prometheus:
+            query: "apiserver_request:availability30d{verb=\"all\", cluster=\"$cluster\"}"
+            instant: true
+    - graph:
+        title: ErrorBudget (30d) > 99.000%
+        datasource: Prometheus
+        span: 9
+        targets:
+        - prometheus:
+            query: "100 * (apiserver_request:availability30d{verb=\"all\", cluster=\"$cluster\"} - 0.990000)"
+            legend: "error-budget"
+        axes:
+          left:
+            unit: percentunit
+    - singleStat:
+        title: Read Availability (30d)
+        datasource: Prometheus
+        span: 3
+        unit: percentunit
+        targets:
+        - prometheus:
+            query: "apiserver_request:availability30d{verb=\"read\", cluster=\"$cluster\"}"
+            instant: true
+    - graph:
+        title: Read SLI - Requests
+        datasource: Prometheus
+        span: 3
+        targets:
+        - prometheus:
+            query: "sum by (code) (code_resource:apiserver_request_total:rate5m{verb=\"read\", cluster=\"$cluster\"})"
+            legend: "{{`{{`}}code{{`}}`}}"
+        axes:
+          left:
+            unit: reqps
+    - graph:
+        title: Read SLI - Errors
+        datasource: Prometheus
+        span: 3
+        targets:
+        - prometheus:
+            query: "sum by (resource) (code_resource:apiserver_request_total:rate5m{verb=\"read\",code=~\"5..\", cluster=\"$cluster\"}) / sum by (resource) (code_resource:apiserver_request_total:rate5m{verb=\"read\", cluster=\"$cluster\"})"
+            legend: "{{`{{`}}resource{{`}}`}}"
+        axes:
+          left:
+            unit: percentunit
+    - graph:
+        title: Read SLI - Duration
+        datasource: Prometheus
+        span: 3
+        targets:
+        - prometheus:
+            query: "cluster_quantile:apiserver_request_duration_seconds:histogram_quantile{verb=\"read\", cluster=\"$cluster\"}"
+            legend: "{{`{{`}}resource{{`}}`}}"
+        axes:
+          left:
+            unit: s
+    - singleStat:
+        title: Write Availability (30d)
+        datasource: Prometheus
+        span: 3
+        unit: percentunit
+        targets:
+        - prometheus:
+            query: "apiserver_request:availability30d{verb=\"write\", cluster=\"$cluster\"}"
+            instant: true
+    - graph:
+        title: Write SLI - Requests
+        datasource: Prometheus
+        span: 3
+        targets:
+        - prometheus:
+            query: "sum by (code) (code_resource:apiserver_request_total:rate5m{verb=\"write\", cluster=\"$cluster\"})"
+            legend: "{{`{{`}}code{{`}}`}}"
+        axes:
+          left:
+            unit: reqps
+    - graph:
+        title: Write SLI - Errors
+        datasource: Prometheus
+        span: 3
+        targets:
+        - prometheus:
+            query: "sum by (resource) (code_resource:apiserver_request_total:rate5m{verb=\"write\",code=~\"5..\", cluster=\"$cluster\"}) / sum by (resource) (code_resource:apiserver_request_total:rate5m{verb=\"write\", cluster=\"$cluster\"})"
+            legend: "{{`{{`}}resource{{`}}`}}"
+        axes:
+          left:
+            unit: percentunit
+    - graph:
+        title: Write SLI - Duration
+        datasource: Prometheus
+        span: 3
+        targets:
+        - prometheus:
+            query: "cluster_quantile:apiserver_request_duration_seconds:histogram_quantile{verb=\"write\", cluster=\"$cluster\"}"
+            legend: "{{`{{`}}resource{{`}}`}}"
+        axes:
+          left:
+            unit: s
+  - name: APIServer 核心监控
+    panels:
+    - graph:
+        title: 工作队列处理速率
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "sum(rate(workqueue_adds_total{job=\"apiserver\", instance=~\"$instance\", cluster=\"$cluster\"}[5m])) by (instance, name)"
+            legend: "{{`{{`}}instance{{`}}`}} {{`{{`}}name{{`}}`}}"
+        axes:
+          left:
+            unit: ops
+    - graph:
+        title: 工作队列深度
+        datasource: Prometheus
+        span: 6
+        targets:
+        - prometheus:
+            query: "sum(workqueue_depth{job=\"apiserver\", instance=~\"$instance\", cluster=\"$cluster\"}) by (instance, name)"
+            legend: "{{`{{`}}instance{{`}}`}} {{`{{`}}name{{`}}`}}"
+    - graph:
+        title: 工作队列处理延时
+        datasource: Prometheus
+        span: 12
+        targets:
+        - prometheus:
+            query: "histogram_quantile(0.99, sum(rate(workqueue_queue_duration_seconds_bucket{job=\"apiserver\", instance=~\"$instance\", cluster=\"$cluster\"}[5m])) by (instance, name, le))"
+            legend: "{{`{{`}}instance{{`}}`}} {{`{{`}}name{{`}}`}}"
+        axes:
+          left:
+            unit: s
+  - name: 资源使用
+    panels:
+    - graph:
+        title: Memory
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "process_resident_memory_bytes{job=\"apiserver\",instance=~\"$instance\", cluster=\"$cluster\"}"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: byte
+    - graph:
+        title: CPU 使用量
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "rate(process_cpu_seconds_total{job=\"apiserver\",instance=~\"$instance\", cluster=\"$cluster\"}[2m])"
+            legend: "{{`{{`}}instance{{`}}`}}"
+        axes:
+          left:
+            unit: cores
+    - graph:
+        title: goroutine 数量
+        datasource: Prometheus
+        span: 4
+        targets:
+        - prometheus:
+            query: "go_goroutines{job=\"apiserver\",instance=~\"$instance\", cluster=\"$cluster\"}"
+            legend: "{{`{{`}}instance{{`}}`}}"

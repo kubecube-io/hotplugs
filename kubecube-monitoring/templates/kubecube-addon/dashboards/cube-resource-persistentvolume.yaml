@@ -1,0 +1,45 @@
+apiVersion: monitoring.kubecube.io/v1
+kind: Dashboard
+metadata:
+  name: cube-resource-persistent-volumes
+  namespace: kube-public
+  labels:
+    app: {{ template "kube-prometheus-stack.name" $ }}-dashboard
+{{ include "kube-prometheus-stack.labels" $ | indent 4 }}
+spec:
+  title: cube-resource-persistent-volumes
+  rows:
+  - name: PV使用信息
+    panels:
+    - graph:
+        title: Volume使用量
+        datasource: Prometheus
+        targets:
+        - prometheus:
+            query: "(
+            sum without(instance, node) (topk(1, (kubelet_volume_stats_capacity_bytes{cluster=\"$cluster\", job=\"kubelet\", namespace=\"$namespace\", persistentvolumeclaim=\"$volume\"})))
+            -
+            sum without(instance, node) (topk(1, (kubelet_volume_stats_available_bytes{cluster=\"$cluster\", job=\"kubelet\", namespace=\"$namespace\", persistentvolumeclaim=\"$volume\"})))
+          )"
+            legend: "{{`{{`}}persistentvolumeclaim{{`}}`}}"
+        axes:
+          left:
+            unit: bytes
+    - graph:
+        title: Volume水位
+        datasource: Prometheus
+        targets:
+        - prometheus:
+            query: "max without(instance,node) (
+(
+  topk(1, kubelet_volume_stats_capacity_bytes{cluster=\"$cluster\", job=\"kubelet\", namespace=\"$namespace\", persistentvolumeclaim=\"$volume\"})
+  -
+  topk(1, kubelet_volume_stats_available_bytes{cluster=\"$cluster\", job=\"kubelet\", namespace=\"$namespace\", persistentvolumeclaim=\"$volume\"})
+)
+/
+topk(1, kubelet_volume_stats_capacity_bytes{cluster=\"$cluster\", job=\"kubelet\", namespace=\"$namespace\", persistentvolumeclaim=\"$volume\"})
+* 100)"
+            legend: "{{`{{`}}persistentvolumeclaim{{`}}`}}"
+        axes:
+          left:
+            unit: percentunit

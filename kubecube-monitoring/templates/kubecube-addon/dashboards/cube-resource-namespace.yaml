@@ -1,0 +1,488 @@
+apiVersion: monitoring.kubecube.io/v1
+kind: Dashboard
+metadata:
+  name: cube-resource-namespace
+  namespace: kube-public
+  labels:
+    app: {{ template "kube-prometheus-stack.name" $ }}-dashboard
+{{ include "kube-prometheus-stack.labels" $ | indent 4 }}
+spec:
+  title: cube-resource-namespace
+  rows:
+  - name: 资源概览
+    panels:
+    - singleStat:
+        title: CPU 配额
+        datasource: Prometheus
+        unit: cores
+        span: 6
+        targets:
+        - prometheus:
+            query: "kube_resourcequota{cluster=\"$cluster\",namespace=\"$namespace\",resource=\"requests.cpu\",type=\"used\"}"
+            instant: true
+            legend: Requests
+        - prometheus:
+            query: "kube_resourcequota{cluster=\"$cluster\",namespace=\"$namespace\",resource=\"requests.cpu\",type=\"hard\"}"
+            instant: true
+            legend: Requests 配额
+        - prometheus:
+            query: "kube_resourcequota{cluster=\"$cluster\",namespace=\"$namespace\",resource=\"limits.cpu\",type=\"used\"}"
+            instant: true
+            legend: Limits
+        - prometheus:
+            query: "kube_resourcequota{cluster=\"$cluster\",namespace=\"$namespace\",resource=\"limits.cpu\",type=\"hard\"}"
+            instant: true
+            legend: Limits 配额
+    - singleStat:
+        title: CPU 利用率
+        datasource: Prometheus
+        span: 6
+        unit: percentunit
+        targets:
+        - prometheus:
+            query: "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", namespace=\"$namespace\"}) / sum(kube_pod_container_resource_requests{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"cpu\"})"
+            instant: true
+            legend: 利用率(/ Requests)
+        - prometheus:
+            query: "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", namespace=\"$namespace\"}) / sum(kube_pod_container_resource_limits{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"cpu\"})"
+            instant: true
+            legend: 利用率(/ Limits)
+    - singleStat:
+        title: 内存配额
+        datasource: Prometheus
+        span: 6
+        unit: bytes
+        targets:
+        - prometheus:
+            query: "kube_resourcequota{cluster=\"$cluster\",namespace=\"$namespace\",resource=\"requests.memory\",type=\"used\"}"
+            instant: true
+            legend: Requests
+        - prometheus:
+            query: "kube_resourcequota{cluster=\"$cluster\",namespace=\"$namespace\",resource=\"requests.memory\",type=\"hard\"}"
+            instant: true
+            legend: Requests 配额
+        - prometheus:
+            query: "kube_resourcequota{cluster=\"$cluster\",namespace=\"$namespace\",resource=\"limits.memory\",type=\"used\"}"
+            instant: true
+            legend: Limits
+        - prometheus:
+            query: "kube_resourcequota{cluster=\"$cluster\",namespace=\"$namespace\",resource=\"limits.memory\",type=\"hard\"}"
+            instant: true
+            legend: Limits 配额
+    - singleStat:
+        title: 内存利用率
+        datasource: Prometheus
+        span: 6
+        unit: percentunit
+        targets:
+        - prometheus:
+            query: "sum(container_memory_working_set_bytes{cluster=\"$cluster\", namespace=\"$namespace\",container!=\"\", image!=\"\"}) / sum(kube_pod_container_resource_requests{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"memory\"})"
+            instant: true
+            legend: 利用率(/ Requests)
+        - prometheus:
+            query: "sum(container_memory_working_set_bytes{cluster=\"$cluster\", namespace=\"$namespace\",container!=\"\", image!=\"\"}) / sum(kube_pod_container_resource_limits{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"memory\"})"
+            instant: true
+            legend: 利用率(/ Limits)
+    - singleStat:
+        title: GPU 配额
+        datasource: Prometheus
+        span: 3
+        targets:
+        - prometheus:
+            query: "kube_resourcequota{cluster=\"$cluster\",namespace=\"$namespace\",resource=\"requests.nvidia.com/gpu\",type=\"used\"}"
+            instant: true
+            legend: GPU使用量
+        - prometheus:
+            query: "kube_resourcequota{cluster=\"$cluster\",namespace=\"$namespace\",resource=\"requests.nvidia.com/gpu\",type=\"hard\"}"
+            instant: true
+            legend: GPU配额
+    - singleStat:
+        title: 持久存储
+        datasource: Prometheus
+        span: 3
+        unit: bytes
+        targets:
+        - prometheus:
+            query: "sum(
+              (kubelet_volume_stats_capacity_bytes{cluster=\"$cluster\", namespace=\"$namespace\"} - kubelet_volume_stats_available_bytes{cluster=\"$cluster\", namespace=\"$namespace\"})
+            * on(cluster, namespace, persistentvolumeclaim)
+              kube_persistentvolumeclaim_status_phase{cluster=\"$cluster\", namespace=\"$namespace\",phase=\"Bound\"}
+             )"
+            instant: true
+            legend: "PV 使用"
+        - prometheus:
+            query: "sum(
+              kube_persistentvolumeclaim_resource_requests_storage_bytes{cluster=\"$cluster\", namespace=\"$namespace\"}
+            * on(cluster, namespace, persistentvolumeclaim)
+              kube_persistentvolumeclaim_status_phase{cluster=\"$cluster\", namespace=\"$namespace\",phase=\"Bound\"}
+              )"
+            instant: true
+            legend: "PVC Requests"
+    - singleStat:
+        title: PVCs
+        datasource: Prometheus
+        linkUrl: "/control/persistentvolumeclaims/list"
+        span: 2
+        targets:
+        - prometheus:
+            query: "count (kube_persistentvolumeclaim_labels{cluster=\"$cluster\",namespace=\"$namespace\"})"
+            instant: true
+    - singleStat:
+        title: Services
+        datasource: Prometheus
+        linkUrl: "/control/services/list"
+        span: 2
+        targets:
+        - prometheus:
+            query: "count (kube_service_labels{cluster=\"$cluster\",namespace=\"$namespace\"})"
+            instant: true
+    - singleStat:
+        title: Ingresses
+        datasource: Prometheus
+        linkUrl: "/control/ingresses/list"
+        span: 2
+        targets:
+        - prometheus:
+            query: "count (kube_ingress_labels{cluster=\"$cluster\",namespace=\"$namespace\"})"
+            instant: true
+    - singleStat:
+        title: Deployments
+        datasource: Prometheus
+        linkUrl: "/control/deployments/list"
+        span: 2
+        targets:
+        - prometheus:
+            query: "count (kube_deployment_labels{cluster=\"$cluster\",namespace=\"$namespace\"})"
+            instant: true
+    - singleStat:
+        title: StatefuleSets
+        datasource: Prometheus
+        linkUrl: "/control/statefulsets/list"
+        span: 2
+        targets:
+        - prometheus:
+            query: "count (kube_statefulset_labels{cluster=\"$cluster\",namespace=\"$namespace\"})"
+            instant: true
+    - singleStat:
+        title: Pods
+        datasource: Prometheus
+        linkUrl: "/control/pods/list"
+        span: 2
+        targets:
+        - prometheus:
+            query: "count (kube_pod_labels{cluster=\"$cluster\",namespace=\"$namespace\"})"
+            instant: true
+    - singleStat:
+        title: Daemonsets
+        datasource: Prometheus
+        linkUrl: "/control/daemonsets/list"
+        span: 2
+        targets:
+        - prometheus:
+            query: "count (kube_daemonset_labels{cluster=\"$cluster\",namespace=\"$namespace\"})"
+            instant: true
+    - singleStat:
+        title: Cronjobs
+        datasource: Prometheus
+        linkUrl: "/control/cronjobs/list"
+        span: 2
+        targets:
+        - prometheus:
+            query: "count (kube_cronjob_labels{cluster=\"$cluster\",namespace=\"$namespace\"})"
+            instant: true
+    - singleStat:
+        title: Jobs
+        datasource: Prometheus
+        linkUrl: "/control/jobs/list"
+        span: 2
+        targets:
+        - prometheus:
+            query: "count (kube_job_labels{cluster=\"$cluster\",namespace=\"$namespace\"})"
+            instant: true
+  - name: CPU 使用
+    panels:
+    - graph:
+        title: CPU 使用量
+        datasource: Prometheus
+        span: 12
+        stack: true
+        targets:
+        - prometheus:
+            query: "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", namespace=\"$namespace\"}) by (pod)"
+            legend: "{{`{{`}}pod{{`}}`}}"
+    - table:
+        title: CPU 配额
+        datasource: Prometheus
+        span: 12
+        targets:
+        - prometheus:
+            query: "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", namespace=\"$namespace\"}) by (pod)"
+            format: table
+            instant: true
+            ref: A
+        - prometheus:
+            query: "sum(kube_pod_container_resource_requests{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"cpu\"}) by (pod)"
+            format: table
+            instant: true
+            ref: B
+        - prometheus:
+            query: "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", namespace=\"$namespace\"}) by (pod) / sum(kube_pod_container_resource_requests{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"cpu\"}) by (pod)"
+            format: table
+            instant: true
+            ref: C
+        - prometheus:
+            query: "sum(kube_pod_container_resource_limits{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"cpu\"}) by (pod)"
+            format: table
+            instant: true
+            ref: D
+        - prometheus:
+            query: "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", namespace=\"$namespace\"}) by (pod) / sum(kube_pod_container_resource_limits{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"cpu\"}) by (pod)"
+            format: table
+            instant: true
+            ref: E
+        hiddenColumns: ["Time"]
+        styles:
+        - pattern: pod
+          alias: Pod
+          link: true
+          linkUrl: "/control/pods/$__cell/monitor"
+        - alias: CPU 使用量
+          pattern: "Value #A"
+        - alias: CPU Requests
+          pattern: "Value #B"
+        - alias: CPU 使用率(/Requests)
+          pattern: "Value #C"
+          unit: percentunit
+        - alias: CPU Limits
+          pattern: "Value #D"
+        - alias: CPU 使用率(/Limits)
+          pattern: "Value #E"
+          unit: percentunit
+  - name: 内存使用
+    panels:
+    - graph:
+        title: 内存使用量(WSS)
+        datasource: Prometheus
+        span: 12
+        stack: true
+        targets:
+        - prometheus:
+            query: "sum(container_memory_working_set_bytes{cluster=\"$cluster\", namespace=\"$namespace\", container!=\"\", image!=\"\"}) by (pod)"
+            legend: "{{`{{`}}pod{{`}}`}}"
+    - table:
+        title: 内存配额
+        datasource: Prometheus
+        span: 12
+        targets:
+        - prometheus:
+            query: "sum(container_memory_working_set_bytes{cluster=\"$cluster\", namespace=\"$namespace\",container!=\"\", image!=\"\"}) by (pod)"
+            format: table
+            instant: true
+            ref: A
+        - prometheus:
+            query: "sum(kube_pod_container_resource_requests{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"memory\"}) by (pod)"
+            format: table
+            instant: true
+            ref: B
+        - prometheus:
+            query: "sum(container_memory_working_set_bytes{cluster=\"$cluster\", namespace=\"$namespace\",container!=\"\", image!=\"\"}) by (pod) / sum(kube_pod_container_resource_requests{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"memory\"}) by (pod)"
+            format: table
+            instant: true
+            ref: C
+        - prometheus:
+            query: "sum(kube_pod_container_resource_limits{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"memory\"}) by (pod)"
+            format: table
+            instant: true
+            ref: D
+        - prometheus:
+            query: "sum(container_memory_working_set_bytes{cluster=\"$cluster\", namespace=\"$namespace\",container!=\"\", image!=\"\"}) by (pod) / sum(kube_pod_container_resource_limits{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"memory\"}) by (pod)"
+            format: table
+            instant: true
+            ref: E
+        - prometheus:
+            query: "sum(container_memory_rss{cluster=\"$cluster\", namespace=\"$namespace\",container!=\"\"}) by (pod)"
+            format: table
+            instant: true
+            ref: F
+        - prometheus:
+            query: "sum(container_memory_cache{cluster=\"$cluster\", namespace=\"$namespace\",container!=\"\"}) by (pod)"
+            format: table
+            instant: true
+            ref: G
+        hiddenColumns: ["Time"]
+        styles:
+        - pattern: "pod"
+          alias: Pod
+          link: true
+          linkUrl: "/control/pods/$__cell/monitor"
+        - pattern: "Value #A"
+          alias: 内存使用量(WSS)
+          unit: bytes
+        - pattern: "Value #B"
+          alias: 内存 Requests
+          unit: bytes
+        - pattern: "Value #C"
+          alias: 内存使用率(/Requests)
+          unit: percentunit
+        - pattern: "Value #D"
+          alias: 内存 Limits
+          unit: bytes
+        - pattern: "Value #E"
+          alias: 内存使用率(/Limits)
+          unit: percentunit
+        - pattern: "Value #F"
+          alias: 内存使用量(RSS)
+          unit: bytes
+        - pattern: "Value #G"
+          alias: 内存使用量(Cache)
+          unit: bytes
+  - name: 网络带宽
+    panels:
+    - graph:
+        title: 网络带宽-流入
+        datasource: Prometheus
+        stack: true
+        targets:
+        - prometheus:
+            query: "sum(irate(container_network_receive_bytes_total{cluster=\"$cluster\", namespace=~\"$namespace\"}[2m])) by (pod)"
+            legend: "{{`{{`}}pod{{`}}`}}"
+        axes:
+          left:
+            unit: Bps
+    - graph:
+        title: 网络带宽-流出
+        datasource: Prometheus
+        stack: true
+        targets:
+        - prometheus:
+            query: "sum(irate(container_network_transmit_bytes_total{cluster=\"$cluster\", namespace=~\"$namespace\"}[2m])) by (pod)"
+            legend: "{{`{{`}}pod{{`}}`}}"
+        axes:
+          left:
+            unit: Bps
+  - name: 网络包速率
+    panels:
+    - graph:
+        title: 收包速率
+        datasource: Prometheus
+        stack: true
+        targets:
+        - prometheus:
+            query: "sum(irate(container_network_receive_packets_total{cluster=\"$cluster\", namespace=~\"$namespace\"}[2m])) by (pod)"
+            legend: "{{`{{`}}pod{{`}}`}}"
+        axes:
+          left:
+            unit: pps
+    - graph:
+        title: 发包速率
+        datasource: Prometheus
+        stack: true
+        targets:
+        - prometheus:
+            query: "sum(irate(container_network_transmit_packets_total{cluster=\"$cluster\", namespace=~\"$namespace\"}[2m])) by (pod)"
+            legend: "{{`{{`}}pod{{`}}`}}"
+        axes:
+          left:
+            unit: pps
+  - name: 网络丢包率
+    panels:
+    - graph:
+        title: 丢包率-流入
+        datasource: Prometheus
+        stack: true
+        targets:
+        - prometheus:
+            query: "sum(irate(container_network_receive_packets_dropped_total{cluster=\"$cluster\", namespace=~\"$namespace\"}[2m])) by (pod)"
+            legend: "{{`{{`}}pod{{`}}`}}"
+        axes:
+          left:
+            unit: pps
+    - graph:
+        title: 丢包率-流出
+        datasource: Prometheus
+        stack: true
+        targets:
+        - prometheus:
+            query: "sum(irate(container_network_transmit_packets_dropped_total{cluster=\"$cluster\", namespace=~\"$namespace\"}[2m])) by (pod)"
+            legend: "{{`{{`}}pod{{`}}`}}"
+        axes:
+          left:
+            unit: pps
+  - name: 磁盘 IO 分布
+    panels:
+    - graph:
+        title: IOPS(读+写)
+        datasource: Prometheus
+        stack: true
+        targets:
+        - prometheus:
+            query: "ceil(sum by(pod) (rate(container_fs_reads_total{container!=\"\", cluster=\"$cluster\",namespace=~\"$namespace\"}[5m]) + rate(container_fs_writes_total{container!=\"\", cluster=\"$cluster\",namespace=~\"$namespace\"}[5m])))"
+            legend: "{{`{{`}}pod{{`}}`}}"
+    - graph:
+        title: 吞吐量(读+写)
+        datasource: Prometheus
+        stack: true
+        targets:
+        - prometheus:
+            query: "sum by(pod) (rate(container_fs_reads_bytes_total{container!=\"\", cluster=\"$cluster\",namespace=~\"$namespace\"}[5m]) + rate(container_fs_writes_bytes_total{container!=\"\", cluster=\"$cluster\",namespace=~\"$namespace\"}[5m]))"
+            legend: "{{`{{`}}pod{{`}}`}}"
+        axes:
+          left:
+            unit: Bps
+    - table:
+        title: 当前磁盘IO值
+        datasource: Prometheus
+        targets:
+        - prometheus:
+            query: "sum by(pod) (rate(container_fs_reads_total{container!=\"\", cluster=\"$cluster\",namespace=~\"$namespace\"}[5m]))"
+            instant: true
+            format: table
+            ref: A
+        - prometheus:
+            query: "sum by(pod) (rate(container_fs_writes_total{container!=\"\", cluster=\"$cluster\",namespace=~\"$namespace\"}[5m]))"
+            instant: true
+            format: table
+            ref: B
+        - prometheus:
+            query: "sum by(pod) (rate(container_fs_reads_total{container!=\"\", cluster=\"$cluster\",namespace=~\"$namespace\"}[5m]) + rate(container_fs_writes_total{container!=\"\", cluster=\"$cluster\",namespace=~\"$namespace\"}[5m]))"
+            instant: true
+            format: table
+            ref: C
+        - prometheus:
+            query: "sum by(pod) (rate(container_fs_reads_bytes_total{container!=\"\", cluster=\"$cluster\",namespace=~\"$namespace\"}[5m]))"
+            instant: true
+            format: table
+            ref: D
+        - prometheus:
+            query: "sum by(pod) (rate(container_fs_writes_bytes_total{container!=\"\", cluster=\"$cluster\",namespace=~\"$namespace\"}[5m]))"
+            instant: true
+            format: table
+            ref: E
+        - prometheus:
+            query: "sum by(pod) (rate(container_fs_reads_bytes_total{container!=\"\", cluster=\"$cluster\",namespace=~\"$namespace\"}[5m]) + rate(container_fs_writes_bytes_total{container!=\"\", cluster=\"$cluster\",namespace=~\"$namespace\"}[5m]))"
+            instant: true
+            format: table
+            ref: F
+        hiddenColumns: ["Time"]
+        styles:
+        - pattern: "pod"
+          alias: Pod
+          link: true
+          linkUrl: "/control/pods/$__cell/monitor"
+        - pattern: "Value #A"
+          alias: IOPS(读)
+        - pattern: "Value #B"
+          alias: IOPS(写)
+        - pattern: "Value #C"
+          alias: IOPS(读+写)
+        - pattern: "Value #D"
+          alias: 读吞吐量
+          unit: Bps
+        - pattern: "Value #E"
+          alias: 写吞吐量
+          unit: Bps
+        - pattern: "Value #F"
+          alias: 吞吐量(读+写)
+          unit: Bps
+
+

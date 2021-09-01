@@ -1,0 +1,84 @@
+{{- if .Values.kubecube.hnc.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: amc-{{ template "kube-prometheus-stack.fullname" . }}-post-install
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+    app: {{ template "kube-prometheus-stack.name" . }}-alertmanager
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-delete-policy": hook-succeeded, hook-failed
+    "helm.sh/hook-weight": "5"
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      name: amc-{{ template "kube-prometheus-stack.fullname" . }}-post-install
+      labels: {{ include "kube-prometheus-stack.labels" . | nindent 8 }}
+        app: {{ template "kube-prometheus-stack.name" . }}-alertmanager
+    spec:
+      serviceAccountName: amc-{{ template "kube-prometheus-stack.fullname" . }}-post-install
+      containers:
+        - name: amc-hnc-propagation
+          image: {{ .Values.kubecube.hnc.image.repository }}:{{ .Values.kubecube.hnc.image.tag }}
+          imagePullPolicy: IfNotPresent
+          command:
+          - /bin/sh
+          - -c
+          - >
+            kubectl hns config set-resource secrets --mode Propagate;
+            kubectl hns config set-resource alertmanagerconfigs --group monitoring.coreos.com --mode Propagate;
+      restartPolicy: OnFailure
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: amc-{{ template "kube-prometheus-stack.fullname" . }}-post-install
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}-alertmanager
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-delete-policy": hook-succeeded, hook-failed
+    "helm.sh/hook-weight": "3"
+rules:
+- apiGroups:
+  - '*'
+  resources:
+  - secrets
+  - alertmanagerconfigs
+  - hncconfigurations
+  verbs: ['create', 'update', 'get', 'list', 'patch']
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: amc-{{ template "kube-prometheus-stack.fullname" . }}-post-install
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}-alertmanager
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-delete-policy": hook-succeeded, hook-failed
+    "helm.sh/hook-weight": "3"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: amc-{{ template "kube-prometheus-stack.fullname" . }}-post-install
+subjects:
+- kind: ServiceAccount
+  name: amc-{{ template "kube-prometheus-stack.fullname" . }}-post-install
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: amc-{{ template "kube-prometheus-stack.fullname" . }}-post-install
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}-alertmanager
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-delete-policy": hook-succeeded, hook-failed
+    "helm.sh/hook-weight": "3"
+{{- end }}
