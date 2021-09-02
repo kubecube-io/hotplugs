@@ -1,3 +1,9 @@
+{{- $cluster := "$cluster" -}}
+{{- if .Values.kubecube.dashboard.multicluster -}}
+    {{- $cluster = "$cluster" -}}
+{{- else -}}
+    {{- $cluster = "" -}}
+{{- end -}}
 apiVersion: monitoring.kubecube.io/v1
 kind: Dashboard
 metadata:
@@ -19,9 +25,9 @@ spec:
           targets:
             - prometheus:
                 query: "sum(
-  node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", namespace=\"$namespace\"}
+  node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"{{ $cluster }}\", namespace=\"$namespace\"}
 * on(namespace,pod)
-  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
+  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
 ) by (pod)"
                 legend: "{{`{{`}}pod{{`}}`}}"
       - table:
@@ -30,55 +36,55 @@ spec:
           targets:
             - prometheus:
                 query: "sum(
-                        node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", namespace=\"$namespace\"}
+                        node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"{{ $cluster }}\", namespace=\"$namespace\"}
                       * on(namespace,pod)
-                        group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
+                        group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
                     ) by (pod)"
                 ref: A
                 format: table
                 instant: true
             - prometheus:
                 query: "sum(
-                  kube_pod_container_resource_requests{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"cpu\"}
+                  kube_pod_container_resource_requests{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", resource=\"cpu\"}
                 * on(namespace,pod)
-                  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
+                  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
               ) by (pod)"
                 ref: B
                 format: table
                 instant: true
             - prometheus:
                 query: "sum(
-                    node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", namespace=\"$namespace\"}
+                    node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"{{ $cluster }}\", namespace=\"$namespace\"}
                   * on(namespace,pod)
-                    group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
+                    group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
                 ) by (pod)
                 /sum(
-                    kube_pod_container_resource_requests{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"cpu\"}
+                    kube_pod_container_resource_requests{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", resource=\"cpu\"}
                   * on(namespace,pod)
-                    group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
+                    group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
                 ) by (pod)"
                 ref: C
                 format: table
                 instant: true
             - prometheus:
                 query: "sum(
-                      kube_pod_container_resource_limits{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"cpu\"}
+                      kube_pod_container_resource_limits{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", resource=\"cpu\"}
                     * on(namespace,pod)
-                      group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
+                      group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
                   ) by (pod)"
                 ref: D
                 format: table
                 instant: true
             - prometheus:
                 query: "sum(
-                node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", namespace=\"$namespace\"}
+                node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"{{ $cluster }}\", namespace=\"$namespace\"}
               * on(namespace,pod)
-                group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
+                group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
             ) by (pod)
             /sum(
-                kube_pod_container_resource_limits{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"cpu\"}
+                kube_pod_container_resource_limits{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", resource=\"cpu\"}
               * on(namespace,pod)
-                group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
+                group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
             ) by (pod)"
                 ref: E
                 format: table
@@ -111,9 +117,9 @@ spec:
           targets:
             - prometheus:
                 query: "sum(
-  container_memory_working_set_bytes{cluster=\"$cluster\", namespace=\"$namespace\", container!=\"\", image!=\"\"}
+  container_memory_working_set_bytes{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", container!=\"\", image!=\"\"}
 * on(namespace,pod)
-  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
+  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
 ) by (pod)"
                 legend: "{{`{{`}}pod{{`}}`}}"
       - table:
@@ -122,73 +128,73 @@ spec:
           targets:
             - prometheus:
                 query: "sum(
-                  container_memory_working_set_bytes{cluster=\"$cluster\", namespace=\"$namespace\", container!=\"\", image!=\"\"}
+                  container_memory_working_set_bytes{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", container!=\"\", image!=\"\"}
                 * on(namespace,pod)
-                  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
+                  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
               ) by (pod)"
                 instant: true
                 ref: A
                 format: table
             - prometheus:
                 query: "sum(
-                  kube_pod_container_resource_requests{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"memory\"}
+                  kube_pod_container_resource_requests{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", resource=\"memory\"}
                 * on(namespace,pod)
-                  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
+                  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
               ) by (pod)"
                 instant: true
                 ref: B
                 format: table
             - prometheus:
                 query: "sum(
-  container_memory_working_set_bytes{cluster=\"$cluster\", namespace=\"$namespace\", container!=\"\", image!=\"\"}
+  container_memory_working_set_bytes{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", container!=\"\", image!=\"\"}
 * on(namespace,pod)
-  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
+  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
 ) by (pod)
 /sum(
-  kube_pod_container_resource_requests{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"memory\"}
+  kube_pod_container_resource_requests{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", resource=\"memory\"}
 * on(namespace,pod)
-  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
+  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
 ) by (pod)"
                 instant: true
                 ref: C
                 format: table
             - prometheus:
                 query: "sum(
-  kube_pod_container_resource_limits{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"memory\"}
+  kube_pod_container_resource_limits{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", resource=\"memory\"}
 * on(namespace,pod)
-  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
+  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
 ) by (pod)"
                 instant: true
                 ref: D
                 format: table
             - prometheus:
                 query: "sum(
-  container_memory_working_set_bytes{cluster=\"$cluster\", namespace=\"$namespace\", container!=\"\", image!=\"\"}
+  container_memory_working_set_bytes{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", container!=\"\", image!=\"\"}
 * on(namespace,pod)
-  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
+  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
 ) by (pod)
 /sum(
-  kube_pod_container_resource_limits{cluster=\"$cluster\", namespace=\"$namespace\", resource=\"memory\"}
+  kube_pod_container_resource_limits{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", resource=\"memory\"}
 * on(namespace,pod)
-  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
+  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
 ) by (pod)"
                 instant: true
                 ref: E
                 format: table
             - prometheus:
                 query: "sum(
-                  container_memory_rss{cluster=\"$cluster\", namespace=\"$namespace\", container!=\"\", image!=\"\"}
+                  container_memory_rss{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", container!=\"\", image!=\"\"}
                 * on(namespace,pod)
-                  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
+                  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
               ) by (pod)"
                 instant: true
                 ref: F
                 format: table
             - prometheus:
                 query: "sum(
-                  container_memory_cache{cluster=\"$cluster\", namespace=\"$namespace\", container!=\"\", image!=\"\"}
+                  container_memory_cache{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", container!=\"\", image!=\"\"}
                 * on(namespace,pod)
-                  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
+                  group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=\"$namespace\", workload=\"$workload\", workload_type=\"$type\"}
               ) by (pod)"
                 instant: true
                 ref: G
@@ -228,9 +234,9 @@ spec:
           stack: true
           targets:
             - prometheus:
-                query: "(sum(irate(container_network_receive_bytes_total{cluster=\"$cluster\", namespace=~\"$namespace\"}[2m])
+                query: "(sum(irate(container_network_receive_bytes_total{cluster=\"{{ $cluster }}\", namespace=~\"$namespace\"}[2m])
 * on (namespace,pod)
-group_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=~\"$namespace\", workload=~\"$workload\", workload_type=\"$type\"}) by (pod))"
+group_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=~\"$namespace\", workload=~\"$workload\", workload_type=\"$type\"}) by (pod))"
                 legend: "{{`{{`}}pod{{`}}`}}"
           axes:
             left:
@@ -241,9 +247,9 @@ group_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel
           stack: true
           targets:
             - prometheus:
-                query: "(sum(irate(container_network_transmit_bytes_total{cluster=\"$cluster\", namespace=~\"$namespace\"}[2m])
+                query: "(sum(irate(container_network_transmit_bytes_total{cluster=\"{{ $cluster }}\", namespace=~\"$namespace\"}[2m])
 * on (namespace,pod)
-group_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=~\"$namespace\", workload=~\"$workload\", workload_type=\"$type\"}) by (pod))"
+group_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=~\"$namespace\", workload=~\"$workload\", workload_type=\"$type\"}) by (pod))"
                 legend: "{{`{{`}}pod{{`}}`}}"
           axes:
             left:
@@ -256,9 +262,9 @@ group_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel
           stack: true
           targets:
             - prometheus:
-                query: "(sum(irate(container_network_receive_packets_total{cluster=\"$cluster\", namespace=~\"$namespace\"}[2m])
+                query: "(sum(irate(container_network_receive_packets_total{cluster=\"{{ $cluster }}\", namespace=~\"$namespace\"}[2m])
 * on (namespace,pod)
-group_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=~\"$namespace\", workload=~\"$workload\", workload_type=\"$type\"}) by (pod))"
+group_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=~\"$namespace\", workload=~\"$workload\", workload_type=\"$type\"}) by (pod))"
                 legend: "{{`{{`}}pod{{`}}`}}"
           axes:
             left:
@@ -269,9 +275,9 @@ group_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel
           stack: true
           targets:
             - prometheus:
-                query: "(sum(irate(container_network_transmit_packets_total{cluster=\"$cluster\", namespace=~\"$namespace\"}[2m])
+                query: "(sum(irate(container_network_transmit_packets_total{cluster=\"{{ $cluster }}\", namespace=~\"$namespace\"}[2m])
 * on (namespace,pod)
-group_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=~\"$namespace\", workload=~\"$workload\", workload_type=\"$type\"}) by (pod))"
+group_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=~\"$namespace\", workload=~\"$workload\", workload_type=\"$type\"}) by (pod))"
                 legend: "{{`{{`}}pod{{`}}`}}"
           axes:
             left:
@@ -284,9 +290,9 @@ group_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel
           stack: true
           targets:
             - prometheus:
-                query: "(sum(irate(container_network_receive_packets_dropped_total{cluster=\"$cluster\", namespace=~\"$namespace\"}[2m])
+                query: "(sum(irate(container_network_receive_packets_dropped_total{cluster=\"{{ $cluster }}\", namespace=~\"$namespace\"}[2m])
 * on (namespace,pod)
-group_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=~\"$namespace\", workload=~\"$workload\", workload_type=\"$type\"}) by (pod))"
+group_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=~\"$namespace\", workload=~\"$workload\", workload_type=\"$type\"}) by (pod))"
                 legend: "{{`{{`}}pod{{`}}`}}"
           axes:
             left:
@@ -297,9 +303,9 @@ group_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel
           stack: true
           targets:
             - prometheus:
-                query: "(sum(irate(container_network_transmit_packets_dropped_total{cluster=\"$cluster\", namespace=~\"$namespace\"}[2m])
+                query: "(sum(irate(container_network_transmit_packets_dropped_total{cluster=\"{{ $cluster }}\", namespace=~\"$namespace\"}[2m])
 * on (namespace,pod)
-group_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\", namespace=~\"$namespace\", workload=~\"$workload\", workload_type=\"$type\"}) by (pod))"
+group_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"{{ $cluster }}\", namespace=~\"$namespace\", workload=~\"$workload\", workload_type=\"$type\"}) by (pod))"
                 legend: "{{`{{`}}pod{{`}}`}}"
           axes:
             left:
