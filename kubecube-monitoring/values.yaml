@@ -2592,7 +2592,7 @@ prometheus:
     ##
     # podMetricsEndpoints: []
 prometheusAdapter:
-  enabled: true
+  enabled: false
 
 # configuration for subchart prometheus-adapter
 ##
