@@ -181,6 +181,9 @@ alertmanager:
       group_interval: 5m
       repeat_interval: 6h
       receiver: 'null'
+      matchers:
+        - name: kubecube_io_owner
+          value: platform
       routes:
       - match:
           alertname: Watchdog
