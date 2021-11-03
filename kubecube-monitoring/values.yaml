@@ -180,8 +180,6 @@ alertmanager:
       group_wait: 30s
       group_interval: 5m
       repeat_interval: 6h
-      matchers:
-      - kubecube_io_owner = platform
       receiver: 'null'
       routes:
       - match:
