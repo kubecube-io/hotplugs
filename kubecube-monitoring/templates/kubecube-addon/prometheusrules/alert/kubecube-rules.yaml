@@ -1,3 +1,4 @@
+#告警服务kubecube模块告警指标
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
