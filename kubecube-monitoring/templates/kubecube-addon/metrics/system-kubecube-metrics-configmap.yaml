@@ -1,0 +1,234 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: monitoring
+  name: system-kubecube-metrics-config
+data:
+  pod.yaml: |
+    - name:cpu_usage_percentage
+      template:(label_replace(pod:cpu_usage_percentage{cluster_name="$cluster_name",namespace="$namespace"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",namespace="$namespace",created_by_kind=~"$kind"})$operator $value
+      cnName:CPU使用率
+      unit:"%"
+    - name:memory_usage_percentage
+      template:(label_replace(pod:memory_usage_percentage{cluster_name="$cluster_name",namespace="$namespace"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",namespace="$namespace",created_by_kind=~"$kind"}) $operator $value
+      cnName:内存使用率
+      unit:"%"
+    - name:disk_read_operation_rate
+      template:(label_replace(pod:disk_read_operation_rate{cluster_name="$cluster_name",namespace="$namespace"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",namespace="$namespace",created_by_kind=~"$kind"}) $operator $value
+      cnName:磁盘读操作速率
+      unit:""
+    - name:disk_write_operation_rate
+      template:(label_replace(pod:disk_write_operation_rate{cluster_name="$cluster_name",namespace="$namespace"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",namespace="$namespace",created_by_kind=~"$kind"}) $operator $value
+      cnName:磁盘写操作速率
+      unit:""
+    - name:disk_read_bytes_rate
+      template:(label_replace(pod:disk_read_bytes_rate{cluster_name="$cluster_name",namespace="$namespace"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",namespace="$namespace",created_by_kind=~"$kind"}) $operator $value
+      cnName:磁盘读字节速率
+      unit:"MiB/s"
+    - name:disk_write_bytes_rate
+      template:(label_replace(pod:disk_write_bytes_rate{cluster_name="$cluster_name",namespace="$namespace"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",namespace="$namespace",created_by_kind=~"$kind"}) $operator $value
+      cnName:磁盘写字节速率
+      unit:"MiB/s"
+    - name:network_receive_packets_rate
+      template:(label_replace(pod:network_receive_packets_rate{cluster_name="$cluster_name",namespace="$namespace"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",namespace="$namespace",created_by_kind=~"$kind"}) $operator $value
+      cnName:网络收包速率
+      unit:"%"
+    - name:network_transmit_packets_rate
+      template:(label_replace(pod:network_transmit_packets_rate{cluster_name="$cluster_name",namespace="$namespace"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",namespace="$namespace",created_by_kind=~"$kind"}) $operator $value
+      cnName:网络发包速率
+      unit:"%"
+    - name:network_receive_bytes_rate
+      template:(label_replace(pod:network_receive_bytes_rate{cluster_name="$cluster_name",namespace="$namespace"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",namespace="$namespace",created_by_kind=~"$kind"}) $operator $value
+      cnName:网络收字节速率
+      unit:"MiB/s"
+    - name:network_transmit_bytes_rate
+      template:(label_replace(pod:network_transmit_bytes_rate{cluster_name="$cluster_name",namespace="$namespace"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",namespace="$namespace",created_by_kind=~"$kind"}) $operator $value
+      cnName:网络发字节速率
+      unit:"MiB/s"
+    - name:gpu_mem_usage_percentage
+      template:(label_replace(sum by (cluster_name,namespace,pod_name) (container:gpu_fb_usage_percentage{cluster_name="$cluster_name",namespace=~"[[namespace]]"}),"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"}) $operator $value
+      cnName:GPU显存使用率
+      unit:"%"
+  container.yaml: |
+    - name:cpu_usage_percentage
+      template:(label_replace(container:cpu_usage_percentage{cluster_name="$cluster_name",namespace="$namespace"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",namespace="$namespace",created_by_kind=~"$kind"}) $operator $value
+      cnName:CPU使用率
+      unit:"%"
+    - name:memory_usage_percentage
+      template:(label_replace(container:memory_usage_percentage{cluster_name="$cluster_name",namespace="$namespace"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",namespace="$namespace",created_by_kind=~"$kind"}) $operator $value
+      cnName:内存使用率
+      unit:"%"
+    - name:disk_read_operation_rate
+      template:(label_replace(container:disk_read_operation_rate{cluster_name="$cluster_name",namespace="$namespace"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",namespace="$namespace",created_by_kind=~"$kind"}) $operator $value
+      cnName:磁盘读操作速率
+    - name:disk_write_operation_rate
+      template:(label_replace(container:disk_write_operation_rate{cluster_name="$cluster_name",namespace="$namespace"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",namespace="$namespace",created_by_kind=~"$kind"}) $operator $value
+      cnName:磁盘写操作速率
+    - name:disk_read_bytes_rate
+      template:(label_replace(container:disk_read_bytes_rate{cluster_name="$cluster_name",namespace="$namespace"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",namespace="$namespace",created_by_kind=~"$kind"}) $operator $value
+      cnName:磁盘读字节速率
+      unit:"MiB/s"
+    - name:disk_read_bytes_rate
+      template:(label_replace(container:disk_write_bytes_rate{cluster_name="$cluster_name",namespace="$namespace"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",namespace="$namespace",created_by_kind=~"$kind"}) $operator $value
+      cnName:磁盘写字节速率
+      unit:"MiB/s"
+    - name:gpu_mem_usage_percentage
+      template:(label_replace(container:gpu_fb_usage_percentage{cluster_name="$cluster_name",namespace=~"[[namespace]]",container_name=~"[[container_name]]"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"}) $operator $value
+      cnName:GPU显存使用率
+      unit:"%"
+  workload.yaml: |
+    - name:current_replicas
+      template:workload:current_replicas{cluster_name="$cluster_name",namespace=~"[[namespace]]"} $operator $value
+      cnName:可用副本数
+      unit:"个"
+  nodepool.yaml: |
+    - name:cpu_request_usage_ratio
+      template:label_replace(100 * avg by (cluster_name,$labels) (label_replace((node:cpu_request_cores{cluster_name=~"[[cluster_name]]"} / on(cluster_name,node_name) node:cpu_allocatable_cores),"node","$1","node_name","(.*)") * on(cluster_name,node) group_left($labels) kube_node_labels{$label_matchers}),"__name__","节点池CPU申请水位","",".*") $operator $value
+      cnName:节点池CPU申请水位
+      unit:"%"
+    - name:cpu_usage_percentage
+      template:label_replace(avg by (cluster_name, $labels) (node:cpu_usage_percentage{cluster=~"[[cluster_name]]"} * on (cluster_name,node_name) group_left($labels) label_replace(kube_node_labels{$label_matchers},"node_name","$1","node","(.*)")),"__name__","节点池cpu使用率","",".*") $operator $value
+      cnName:节点池CPU使用率
+      unit:"%"
+    - name:memory_usage_percentage
+      template:label_replace(avg by (cluster_name, $labels) (node:memory_usage_percentage{cluster_name=~"[[cluster_name]]"} * on (cluster_name,node_name) group_left($labels) label_replace(kube_node_labels{$label_matchers},"node_name","$1","node","(.*)")),"__name__","节点池内存水位","",".*") $operator $value
+      cnName:节点池内存使用率
+      unit:"%"
+    - name:memory_request_ratio
+      template:label_replace(100 * avg by (cluster_name,$labels) (label_replace((node:memory_request_bytes{cluster_name=~"[[cluster_name]]"} / on(cluster_name,node_name) node:memory_allocatable_bytes),"node","$1","node_name","(.*)") * on(cluster_name,node) group_left($labels) kube_node_labels{$label_matchers}),"__name__","节点池内存申请水位","",".*") $operator $value
+      cnName:节点池内存申请水位
+      unit:"%"
+    - name:gpu_request_ratio
+      template:label_replace(100 * avg by (cluster_name,$labels) (sum by (cluster_name,node) (kube_pod_container_resource_requests{resource="nvidia_com_gpu"} and on (cluster_name,namespace,pod) (kube_pod_status_phase{phase="Running"}!=0))  / on (cluster_name,node) kube_node_status_allocatable{resource="nvidia_com_gpu"} * on(cluster_name,node) group_left($labels) kube_node_labels{$label_matchers}),"__name__","节点池GPU申请水位","",".*") $operator $value
+      cnName:节点池GPU申请水位
+      unit:"%"
+    - name:gpu_utilization
+      template:label_replace(avg by (cluster_name,$labels) (label_replace(node:gpu_total_used_percentage,"node","$1","node_name","(.*)") * on(cluster_name,node) group_left($labels) kube_node_labels{$label_matchers}),"__name__","节点池GPU利用率","",".*") $operator $value
+      cnName:节点池GPU利用率
+      unit:"%"
+    - name:gpu_mem_usage_percentage
+      template:label_replace(avg by (cluster_name,$labels) (label_replace(container:gpu_fb_usage_percentage,"node","$1","node_name","(.*)") * on(cluster_name,node) group_left($labels) kube_node_labels{$label_matchers}),"__name__","节点池GPU显存使用率","",".*") $operator $value
+      cnName:节点池GPU显存使用率
+      unit:"%"
+  ingress.yaml: |
+    - name:controller_request_volume
+      template:ingress_controller:controller_request_volume{cluster=~"$cluster", controller_pod=~"$ingress"} $operator $value
+      cnName:请求量
+      unit:次
+    - name:controller_connections
+      template:(ingress_controller:controller_connections{cluster=~"$cluster", controller_pod=~"$ingress"} $operator $value
+      cnName:连接数
+      unit:个
+    - name:controller_success_percentage
+      template:(ingress_controller:controller_success_percentage{cluster=~"$cluster", controller_pod=~"$ingress"} $operator $value
+      cnName:成功率
+      unit:"%"
+    - name:controller_send_rate
+      template:(ingress_controller:controller_send_rate{cluster=~"$cluster", controller_pod=~"$ingress"} $operator $value
+      cnName:网络发送速率
+      unit:"MiB/s"
+    - name:controller_received_rate
+      template:(ingress_controller:controller_received_rate{cluster=~"$cluster", controller_pod=~"$ingress"} $operator $value
+      cnName:网络接收速率
+      unit:"MiB/s"
+    - name:controller_cpu_usage_percentage
+      template:(ingress_controller:controller_cpu_usage_percentage{cluster=~"$cluster", controller_pod=~"$ingress"} $operator $value
+      cnName:CPU 使用率
+      unit:"%"
+    - name:controller_memory_usage_bytes
+      template:(ingress_controller:controller_memory_usage_bytes{cluster=~"$cluster", controller_pod=~"$ingress"} $operator $value
+      cnName:内存使用量
+      unit:"MiB"
+  ceph_cluster.yaml: |
+    - name:cluster_used_percentage
+      template:ceph_cluster:cluster_used_percentage{cluster=~"$cluster"} $operator $value
+      cnName:集群总水位
+      unit:"%"
+    - name:pool_used_percentage
+      template:ceph_cluster:pool_used_percentage{cluster=~"$cluster"} $operator $value
+      cnName:逻辑池水位
+      unit:"%"
+    - name:cluster_health_status
+      template:ceph_cluster:cluster_health_status{cluster=~"$cluster"} $operator $value
+      cnName:集群状态异常
+      unit:"%"
+  node.yaml: |
+    - name:cpu_usage_percentage
+      template:node:cpu_usage_percentage{cluster=~"$cluster", node_name=~"$node_name"} $operator $value
+      cnName:CPU 使用率
+      unit:"%"
+    - name:memory_usage_percentage
+      template:node:memory_usage_percentage{cluster=~"$cluster", node_name=~"$node_name"} $operator $value
+      cnName:内存使用率
+      unit:"%"
+    - name:disk_usage_percentage
+      template:node:disk_usage_percentage{cluster=~"$cluster", node_name=~"$node_name"} $operator $value
+      cnName:文件系统使用率
+      unit:"%"
+    - name:system_load
+      template:node:system_load{cluster=~"$cluster", node_name=~"$node_name"} $operator $value
+      cnName:LOAD 数
+      unit:""
+    - name:tcp_connection_nums
+      template:node:tcp_connection_nums{cluster=~"$cluster", node_name=~"$node_name"} $operator $value
+      cnName:TCP 连接数
+      unit:""
+    - name:network_receive_bytes_rate
+      template:node:network_receive_bytes_rate{cluster=~"$cluster", node_name=~"$node_name"} $operator $value
+      cnName:网络收字节数速率
+      unit:"MB/s"
+    - name:network_transmit_bytes_rate
+      template:node:network_transmit_bytes_rate{cluster=~"$cluster", node_name=~"$node_name"} $operator $value
+      cnName:网络发字节数速率
+      unit:"MB/s"
+    - name:unhealthy_node
+      template:node:unhealthy_node{cluster=~"$cluster", node_name=~"$node_name"} $operator $value
+      cnName:节点状态异常
+      unit:""
+    - name:gpu_total_used_percentage
+      template:node:gpu_total_used_percentage{cluster=~"$cluster", node_name=~"$node_name"} $operator $value
+      cnName:GPU利用率
+      unit:"%"
+    - name:gpu_fb_usage_percentage
+      template:node:gpu_fb_usage_percentage{cluster=~"$cluster", node_name=~"$node_name"} $operator $value
+      cnName:GPU显存使用率
+      unit:"%"
+  cluster.yaml: |
+    - name:unhealth_component
+      template:cluster:unhealth_component{cluster=~"$cluster", cluster_name=~".*"} == 0.0
+      cnName:组件状态非健康时
+      unit:""
+  storage.yaml: |
+    - name:persistentvolumecalim_used_percentage
+      template:storage:persistentvolumecalim_used_percentage{cluster=~"$cluster", target=~"$namespace.*"} $operator $value
+      cnName:水位
+      unit:"%"
+  storagecephfs.yaml: |
+    - name:persistentvolumecalim_used_percentage
+      template:storagecephfs:persistentvolumecalim_used_percentage{cluster=~"$cluster", target=~"$namespace.*"} $operator $value
+      cnName:水位
+      unit:"%"
+    - name:persistentvolumecalim_read_operation_rate
+      template:storagecephfs:persistentvolumecalim_read_operation_rate{cluster=~"$cluster", target=~"$namespace.*"} $operator $value
+      cnName:读操作速率
+      unit:"次/s"
+    - name:persistentvolumecalim_write_operation_rate
+      template:storagecephfs:persistentvolumecalim_write_operation_rate{cluster=~"$cluster", target=~"$namespace.*"} $operator $value
+      cnName:写操作速率
+      unit:"次/s"
+    - name:persistentvolumecalim_read_bytes_rate
+      template:storagecephfs:persistentvolumecalim_read_bytes_rate{cluster=~"$cluster", target=~"$namespace.*"} $operator $value
+      cnName:读字节速率
+      unit:"B/s"
+    - name:persistentvolumecalim_write_bytes_rate
+      template:storagecephfs:persistentvolumecalim_write_bytes_rate{cluster=~"$cluster", target=~"$namespace.*"} $operator $value
+      cnName:写字节速率
+      unit:"B/s"
+    - name:persistentvolumecalim_write_lantency
+      template:storagecephfs:persistentvolumecalim_write_lantency{cluster=~"$cluster", target=~"$namespace.*"} $operator $value
+      cnName:写操作延时
+      unit:"ms"
+    - name:persistentvolumecalim_read_lantency
+      template:storagecephfs:persistentvolumecalim_read_lantency{cluster=~"$cluster", target=~"$namespace.*"} $operator $value
+      cnName:读操作延时
+      unit:"ms"

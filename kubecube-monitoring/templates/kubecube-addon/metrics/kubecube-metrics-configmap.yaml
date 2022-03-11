@@ -1,0 +1,138 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: monitoring
+  name: kubecube-metrics-config
+data:
+  pod.yaml: |
+    - name:cpu_usage_percentage
+      template:(label_replace(pod:cpu_usage_percentage{cluster_name="$cluster_name",target=~"[[target]]"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"} and on (pod) kube_pod_labels{cluster_name="$cluster_name",label_system_tenant="$tenant",label_system_project_$project="true"}) $operator $value
+      cnName:CPU使用率
+      unit:"%"
+    - name:memory_usage_percentage
+      template:(label_replace(pod:memory_usage_percentage{cluster_name="$cluster_name",target=~"[[target]]"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"} and on (pod) kube_pod_labels{cluster_name="$cluster_name",label_system_tenant="$tenant",label_system_project_$project="true"}) $operator $value
+      cnName:内存使用率
+      unit:"%"
+    - name:disk_read_operation_rate
+      template:(label_replace(pod:disk_read_operation_rate{cluster_name="$cluster_name",target=~"[[target]]"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"} and on (pod) kube_pod_labels{cluster_name="$cluster_name",label_system_tenant="$tenant",label_system_project_$project="true"}) $operator $value
+      cnName:磁盘读操作速率
+    - name:disk_read_operation_rate
+      template:(label_replace(pod:disk_write_operation_rate{cluster_name="$cluster_name",target=~"[[target]]"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"} and on (pod) kube_pod_labels{cluster_name="$cluster_name",label_system_tenant="$tenant",label_system_project_$project="true"}) $operator $value
+      cnName:磁盘写操作速率
+    - name:disk_read_bytes_rate
+      template:(label_replace(pod:disk_read_bytes_rate{cluster_name="$cluster_name",target=~"[[target]]"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"} and on (pod) kube_pod_labels{cluster_name="$cluster_name",label_system_tenant="$tenant",label_system_project_$project="true"}) $operator $value
+      cnName:磁盘读字节速率
+      unit:"MiB/s"
+    - name:disk_write_bytes_rate
+      template:(label_replace(pod:disk_write_bytes_rate{cluster_name="$cluster_name",target=~"[[target]]"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"} and on (pod) kube_pod_labels{cluster_name="$cluster_name",label_system_tenant="$tenant",label_system_project_$project="true"}) $operator $value
+      cnName:磁盘写字节速率
+      unit:"MiB/s"
+    - name:network_receive_packets_rate
+      template:(label_replace(pod:network_receive_packets_rate{cluster_name="$cluster_name",target=~"[[target]]"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"} and on (pod) kube_pod_labels{cluster_name="$cluster_name",label_system_tenant="$tenant",label_system_project_$project="true"}) $operator $value
+      cnName:网络收包速率
+      unit:"%"
+    - name:network_transmit_packets_rate
+      template:(label_replace(pod:network_transmit_packets_rate{cluster_name="$cluster_name",target=~"[[target]]"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"} and on (pod) kube_pod_labels{cluster_name="$cluster_name",label_system_tenant="$tenant",label_system_project_$project="true"}) $operator $value
+      cnName:网络发包速率
+      unit:"%"
+    - name:network_receive_bytes_rate
+      template:(label_replace(pod:network_receive_bytes_rate{cluster_name="$cluster_name",target=~"[[target]]"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"} and on (pod) kube_pod_labels{cluster_name="$cluster_name",label_system_tenant="$tenant",label_system_project_$project="true"}) $operator $value
+      cnName:网络收字节速率
+      unit:"MiB/s"
+    - name:network_transmit_bytes_rate
+      template:(label_replace(pod:network_transmit_bytes_rate{cluster_name="$cluster_name",target=~"[[target]]"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"} and on (pod) kube_pod_labels{cluster_name="$cluster_name",label_system_tenant="$tenant",label_system_project_$project="true"}) $operator $value
+      cnName:网络发字节速率
+      unit:"MiB/s"
+    - name:gpu_mem_usage_percentage
+      template:(label_replace(sum by (cluster_name,namespace,pod_name) (container:gpu_fb_usage_percentage{cluster_name="$cluster_name",namespace=~"[[namespace]]",pod_name=~"[[pod_name]]"}),"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"} and on (pod) kube_pod_labels{cluster_name="$cluster_name",label_system_tenant="$tenant",label_system_project_$project="true"}) $operator $value
+      cnName:GPU显存使用率
+      unit:"%"
+  container.yaml: |
+    - name:cpu_usage_percentage
+      template:(label_replace(container:cpu_usage_percentage{cluster_name="$cluster_name",target=~"[[target]]"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"} and on (pod) kube_pod_labels{cluster_name="$cluster_name",label_system_tenant="$tenant",label_system_project_$project="true"}) $operator $value
+      cnName:CPU使用率
+      unit:"%"
+    - name:memory_usage_percentage
+      template:(label_replace(container:memory_usage_percentage{cluster_name="$cluster_name",target=~"[[target]]"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"} and on (pod) kube_pod_labels{cluster_name="$cluster_name",label_system_tenant="$tenant",label_system_project_$project="true"}) $operator $value
+      cnName:内存使用率
+      unit:"%"
+    - name:disk_read_operation_rate
+      template:(label_replace(container:disk_read_operation_rate{cluster_name="$cluster_name",target=~"[[target]]"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"} and on (pod) kube_pod_labels{cluster_name="$cluster_name",label_system_tenant="$tenant",label_system_project_$project="true"}) $operator $value
+      cnName:磁盘读操作速率
+    - name:disk_write_operation_rate
+      template:(label_replace(container:disk_write_operation_rate{cluster_name="$cluster_name",target=~"[[target]]"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"} and on (pod) kube_pod_labels{cluster_name="$cluster_name",label_system_tenant="$tenant",label_system_project_$project="true"}) $operator $value
+      cnName:磁盘写操作速率
+    - name:disk_read_bytes_rate
+      template:(label_replace(container:disk_read_bytes_rate{cluster_name="$cluster_name",target=~"[[target]]"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"} and on (pod) kube_pod_labels{cluster_name="$cluster_name",label_system_tenant="$tenant",label_system_project_$project="true"}) $operator $value
+      cnName:磁盘读字节速率
+      unit:"MiB/s"
+    - name:disk_read_bytes_rate
+      template:(label_replace(container:disk_write_bytes_rate{cluster_name="$cluster_name",target=~"[[target]]"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"} and on (pod) kube_pod_labels{cluster_name="$cluster_name",label_system_tenant="$tenant",label_system_project_$project="true"}) $operator $value
+      cnName:磁盘写字节速率
+      unit:"MiB/s"
+    - name:gpu_mem_usage_percentage
+      template:(label_replace(container:gpu_fb_usage_percentage{cluster_name="$cluster_name",namespace=~"[[namespace]]",pod_name=~"[[pod_name]]",container_name=~"[[container_name]]"},"pod","$1","pod_name","(.*)") and on (pod) kube_pod_info{cluster_name="$cluster_name",created_by_kind=~"$kind"} and on (pod) kube_pod_labels{cluster_name="$cluster_name",label_system_tenant="$tenant",label_system_project_$project="true"}) $operator $value
+      cnName:GPU显存使用率
+      unit:"%"
+  workload.yaml: |
+    - name:current_replicas
+      template:(workload:current_replicas{cluster_name="$cluster_name",target=~"[[target]]"} and on(namespace) kube_namespace_labels{label_system_tenant="$tenant"}) $operator $value
+      cnName:可用副本数
+      unit:"个"
+  namespace.yaml: |
+    - name:cpu_request_usage_ratio
+      template:label_replace(100 * kube_resourcequota{cluster_name=~"[[cluster_name]]",namespace=~"[[namespace]]",resource="requests.cpu",resourcequota="skiff-quota",type="used"} / on (cluster_name,namespace,resource,resourcequota) (kube_resourcequota{type="hard"}!=0),"__name__","namespace:cpu_request_usage_ratio","",".*") $operator $value
+      cnName:空间CPU申请水位
+      unit:"%"
+    - name:memory_request_usage_ratio
+      template:label_replace(100 * kube_resourcequota{cluster_name=~"[[cluster_name]]", namespace=~"[[namespace]]",resource="requests.memory",resourcequota="skiff-quota",type="used"} / on (cluster_name,namespace,resource,resourcequota) (kube_resourcequota{type="hard"}!=0),"__name__","namespace:memory_request_usage_ratio","",".*") $operator $value
+      cnName:空间内存申请水位
+      unit:"%"
+    - name:gpu_request_usage_ratio
+      template:label_replace(100 * kube_resourcequota{cluster_name=~"[[cluster_name]]", namespace=~"[[namespace]]",resource="requests.nvidia.com/gpu",resourcequota="skiff-quota",type="used"} / on (cluster_name,namespace,resource,resourcequota) (kube_resourcequota{type="hard"}!=0),"__name__","namespace:gpu_request_usage_ratio","",".*") $operator $value
+      cnName:空间GPU申请水位
+      unit:"%"
+    - name:storage_request_usage_ratio
+      template:label_replace(100 * kube_resourcequota{cluster_name=~"[[cluster_name]]", namespace=~"[[namespace]]",resource="requests.storage",resourcequota="skiff-quota",type="used"} / on (cluster_name,namespace,resource,resourcequota) (kube_resourcequota{type="hard"}!=0),"__name__","namespace:storage_request_usage_ratio","",".*")  $operator $value
+      cnName:空间存储申请水位
+      unit:"%"
+    - name:cpu_limit_usage_ratio
+      template:label_replace(100 * kube_resourcequota{cluster_name=~"[[cluster_name]]",namespace=~"[[namespace]]",resource="limits.cpu",resourcequota="skiff-quota",type="used"} / on (cluster_name,namespace,resource,resourcequota) (kube_resourcequota{type="hard"}!=0),"__name__","namespace:cpu_limit_usage_ratio","",".*") $operator $value
+      cnName:空间CPU上限水位
+      unit:"%"
+    - name:memory_limit_usage_ratio
+      template:label_replace(100 * kube_resourcequota{cluster_name=~"[[cluster_name]]",namespace=~"[[namespace]]",resource="limits.memory",resourcequota="skiff-quota",type="used"} / on (cluster_name,namespace,resource,resourcequota) (kube_resourcequota{type="hard"}!=0),"__name__","namespace:memory_limit_usage_ratio","",".*") $operator $value
+      cnName:空间内存上限水位
+      unit:"%"
+  storage.yaml: |
+    - name:persistentvolumecalim_used_percentage
+      template:storage:persistentvolumecalim_used_percentage{cluster=~"$cluster", target=~"[[target]]"} $operator $value
+      cnName:水位
+      unit:"%"
+  storagecephfs.yaml: |
+    - name:persistentvolumecalim_used_percentage
+      template:storage:persistentvolumecalim_used_percentage{cluster=~"$cluster", target=~"[[target]]"} $operator $value
+      cnName:水位
+      unit:"%"
+    - name:persistentvolumecalim_read_operation_rate
+      template:storage:persistentvolumecalim_used_percentage{cluster=~"$cluster", target=~"[[target]]"} $operator $value
+      cnName:读操作速率
+      unit:"次/s"
+    - name:persistentvolumecalim_write_operation_rate
+      template:storage:persistentvolumecalim_used_percentage{cluster=~"$cluster", target=~"[[target]]"} $operator $value
+      cnName:写操作速率
+      unit:"次/s"
+    - name:persistentvolumecalim_write_bytes_rate
+      template:storage:persistentvolumecalim_used_percentage{cluster=~"$cluster", target=~"[[target]]"} $operator $value
+      cnName:写字节速率
+      unit:"B/s"
+    - name:persistentvolumecalim_write_lantency
+      template:storage:persistentvolumecalim_used_percentage{cluster=~"$cluster", target=~"[[target]]"} $operator $value
+      cnName:写操作延时
+      unit:"ms"
+    - name:persistentvolumecalim_read_lantency
+      template:storage:persistentvolumecalim_used_percentage{cluster=~"$cluster", target=~"[[target]]"} $operator $value
+      cnName:读操作延时
+      unit:"ms"
+
+
