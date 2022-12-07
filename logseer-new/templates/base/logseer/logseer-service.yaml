@@ -1,0 +1,14 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: logseer
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: NodePort
+  selector:
+    app: logseer
+  ports:
+    - port: 80
+      targetPort: 8443
+      nodePort: 31043

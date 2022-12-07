@@ -1,0 +1,117 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app: loggie
+  name: loggie
+  namespace: {{ .Release.Namespace }}
+spec:
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 25%
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: loggie
+  template:
+    metadata:
+      labels:
+        app: loggie
+    spec:
+      containers:
+        - args:
+            - -meta.nodeName=$(HOST_NAME)
+            - -config.system=/opt/loggie/loggie.yml
+            - -config.pipeline=/opt/loggie/pipeline/*.yml
+          env:
+            - name: TZ
+              value: Asia/Shanghai
+            - name: HOST_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          image: {{ .Values.images.loggie }}
+          name: loggie
+          resources:
+            limits:
+              cpu: "{{ .Values.resources.loggie.limits.cpu }}"
+              memory: "{{ .Values.resources.loggie.limits.memory }}"
+            requests:
+              cpu: "{{ .Values.resources.loggie.requests.cpu }}"
+              memory: "{{ .Values.resources.loggie.requests.memory }}"
+          volumeMounts:
+            - mountPath: /opt/loggie/loggie.yml
+              name: loggie-config
+              subPath: loggie.yml
+            - mountPath: /opt/loggie/pipeline
+              name: pipeline
+            - mountPath: {{ .Values.dataPath }}
+              name: registry
+            - mountPath: /var/log/pods
+              name: podlogs
+            - mountPath: {{ .Values.kubeletRootDir }}
+              mountPropagation: HostToContainer
+              name: kubelet
+            {{- if eq .Values.rootFsCollectionEnabled true }}
+            {{- if eq .Values.containerRuntime "docker" }}
+            - mountPath: /var/run/docker.sock
+              name: dockersocket
+            - mountPath: /var/lib/docker
+              mountPropagation: HostToContainer
+              name: docker
+            {{- end }}
+            {{- if eq .Values.containerRuntime "containerd" }}
+            - mountPath: /run/containerd/containerd.sock
+              name: containerdsocket
+            {{- end }}
+            {{- end }}
+
+      serviceAccountName: loggie
+      {{- if $.Values.tolerations_enable }}
+      tolerations:
+      - operator: Exists
+      {{ end }}
+      volumes:
+        - configMap:
+            defaultMode: 384
+            name: loggie-config
+          name: loggie-config
+        - hostPath:
+            path: {{ .Values.dataPath }}
+            type: DirectoryOrCreate
+          name: registry
+        - emptyDir: {}
+          name: pipeline
+        - hostPath:
+            path: /var/log/pods
+            type: DirectoryOrCreate
+          name: podlogs
+        - hostPath:
+            path: {{ .Values.kubeletRootDir }}
+            type: DirectoryOrCreate
+          name: kubelet
+        {{- if eq .Values.rootFsCollectionEnabled true }}
+        {{- if eq .Values.containerRuntime "docker" }}
+        - hostPath:
+            path: /var/run/docker.sock
+            type: ""
+          name: dockersocket
+        - hostPath:
+            path: /var/lib/docker
+            type: DirectoryOrCreate
+          name: docker
+        {{- end }}
+        {{- if eq .Values.containerRuntime "containerd" }}
+        - hostPath:
+            path: /run/containerd/containerd.sock
+            type: ""
+          name: containerdsocket
+        {{- end }}
+        {{- end }}
+      {{- if eq .Values.rootFsCollectionEnabled true }}
+      {{- if eq .Values.containerRuntime "containerd" }}
+      hostPID: true  
+      {{- end }}
+      {{- end }}

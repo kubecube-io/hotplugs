@@ -1,0 +1,46 @@
+replicas: 1
+
+data_dir: /data                                                 # 数据目录是机器上单独预留的数据盘，或较大的分区，轻舟所有的数据都会保存在这个目录中
+
+storage:
+  log:
+    type: hostpath
+    hostpath:
+      path: "/data/log/logseer"
+    # type: emptydir
+    # emptydir:
+    #   sizelimit: "1314572800"
+
+
+
+images:
+  logseer_image: hub.c.163.com/qingzhou/logseer:v2.3.0
+  tools_images: zzy728418617/logseer-tools:20221205
+
+# required
+## es版本号：可为v6，或者v7（arm架构默认部署es为v7）
+elasticsearchVersion: v7
+elasticsearch:
+  address: elasticsearch-master.elasticsearch.svc:9200
+  single_address: elasticsearch-master.elasticsearch.svc:9200
+  username:
+  password:
+
+
+# required
+resources:
+  logseer:
+    requests:
+      cpu: 0.3
+      memory: 200Mi
+    limits:
+      cpu: 1
+      memory: 2Gi
+  default_job:
+    requests:
+      cpu: 250m
+      memory: 500Mi
+    limits:
+      cpu: 1
+      memory: 2Gi
+

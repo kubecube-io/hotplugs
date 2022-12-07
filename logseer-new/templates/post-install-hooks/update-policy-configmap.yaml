@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logseer-update-policy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "-6"
+    "helm.sh/hook-delete-policy": hook-succeeded, before-hook-creation
+data:
+  update_policy.sh: |
+    #!/bin/bash
+
+    curl --user {{ .Values.elasticsearch.username }}:{{ .Values.elasticsearch.password }} -X POST 'http://{{ .Values.elasticsearch.address }}/_template/loggie' -H 'Content-Type: application/json;charset-UTF-8' -H 'Accept: application/json,text/plain, */*' -d '{
+        "index_patterns": ["log-*"],
+        "mappings": {
+          {{- if eq $.Values.elasticsearchVersion "v6" }}
+          "doc": {
+          {{- end }}
+            "dynamic_templates": [
+                {
+                  "string_fields": {
+                    "match": "*",
+                    "match_mapping_type": "string",
+                    "mapping": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "@timestamp": {
+                  "type": "date"
+                },
+                "message": {
+                  "type" : "text"
+                }
+              }   
+          {{- if eq $.Values.elasticsearchVersion "v6" }}
+          }
+          {{- end }}
+        }
+    }'
+
+    curl --user {{ .Values.elasticsearch.username }}:{{ .Values.elasticsearch.password }} -XPUT -H"Content-Type:application/json" "http://{{ .Values.elasticsearch.single_address }}/_ilm/policy/loggie_policy" -d'{
+      "policy": {
+        "phases": {
+          "delete": {
+            "min_age": "7d",
+            "actions": {
+              "delete": {}
+            }
+          }
+        }
+      }
+    }'
+    
+    curl --user {{ .Values.elasticsearch.username }}:{{ .Values.elasticsearch.password }} -XPUT -H"Content-Type:application/json" "http://{{ .Values.elasticsearch.single_address }}/_template/loggie_ilm_template" -d'{
+      "order" : 1,
+      "index_patterns": ["log*"],
+      "settings": {
+        "index.lifecycle.name": "loggie_policy"
+      }
+    }'
