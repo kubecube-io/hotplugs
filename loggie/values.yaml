@@ -1,0 +1,42 @@
+---
+###### PART1 共享参数, 统一渲染 ######
+#data_dir: /data
+# 数据盘，存储日志盘
+# 例如/data
+dataPath: /data
+
+images:
+  loggie: loggieio/loggie:v1.3.0
+
+# required
+elasticsearch:
+  address: elasticsearch-master.elasticsearch.svc:9200
+  username:
+  password:
+
+# required
+clustername: pivot-cluster
+
+# docker or containerd
+containerRuntime: docker
+
+# 是否采集容器root filesystem里的日志，此时用户Pod不需要挂载volume
+rootFsCollectionEnabled: true
+
+# kubeletRootfs
+# /var/lib/kubelet
+kubeletRootDir: /var/lib/kubelet
+
+# required
+resources:
+  loggie:
+    requests:
+      cpu: 200m
+      memory: 200Mi
+    limits:
+      cpu: 2
+      memory: 1Gi
+
+# 容忍开关
+tolerations_enable: true
+

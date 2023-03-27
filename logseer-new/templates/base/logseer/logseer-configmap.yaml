@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logseer-config
+  namespace: {{ .Release.Namespace }}
+data:
+  application.yml: |
+    http.port: 8443
+    elasticsearch:
+      address: {{ .Values.elasticsearch.address }}
+      indexPattern: "log-*"
+      desensitizeRuleIndex: "desensitize_rule"
+      username: {{ .Values.elasticsearch.username }}
+      password: {{ .Values.elasticsearch.password }}
+    kubernetes:
+      enabled: true
+

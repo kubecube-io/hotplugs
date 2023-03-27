@@ -1,0 +1,50 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: logseer
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: logseer
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: logseer
+  labels:
+    app: logseer
+rules:
+  - apiGroups:
+    - ""
+    resources:
+      - namespaces
+      - configmaps
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+    - loggie.io
+    resources:
+      - logconfigs
+      - logconfigs/status
+      - clusterlogconfigs
+      - clusterlogconfigs/status
+      - sinks
+      - interceptors
+    verbs:
+      - '*'
+  - apiGroups:
+      - cluster.kubecube.io
+    resources:
+      - clusters
+      - clusters/status
+    verbs:
+      - get
+      - list
+      - watch

@@ -1,0 +1,47 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ .Release.Name }}"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+  annotations:
+    # This is what defines this resource as a hook. Without this line, the
+    # job is considered part of the release.
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": hook-succeeded, before-hook-creation
+spec:
+  template:
+    metadata:
+      name: update-policy
+    spec:
+      containers:
+      - name: update-policy
+        image: {{ .Values.images.tools_images }}
+        imagePullPolicy: IfNotPresent
+        workingDir: /
+        command:
+        - bash
+        - "/tmp/update_policy.sh"
+        resources:
+          limits:
+            cpu: "{{ .Values.resources.default_job.limits.cpu }}"
+            memory: "{{ .Values.resources.default_job.limits.memory }}"
+          requests:
+            cpu: "{{ .Values.resources.default_job.requests.cpu }}"
+            memory: "{{ .Values.resources.default_job.requests.memory }}"
+        volumeMounts:
+          - mountPath: /tmp
+            name: update-policy
+      volumes:
+      - name: update-policy
+        configMap:
+          name: logseer-update-policy
+      restartPolicy: OnFailure
+  backoffLimit: 4
+  completions: 1
+  parallelism: 1
