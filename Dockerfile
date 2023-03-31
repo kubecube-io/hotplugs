@@ -14,4 +14,11 @@
 
 FROM hub.c.163.com/library/alpine:3.6
 
-COPY _output /root/helmchartpkg
+COPY third-charts.tar.gz .
+
+COPY install_hotplug.sh install_hotplug.sh
+
+RUN chmod +x install_hotplug.sh
+
+CMD ["/bin/sh","install_hotplug.sh"]
+

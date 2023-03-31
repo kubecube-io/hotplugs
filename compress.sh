@@ -15,16 +15,17 @@
 #!/bin/bash
 
 dir="charts"
-dest="_output"
+dest="third-charts"
+pkg="third-charts.tar.gz"
 
-rm -rf $dest
+rm -rf $dest > /dev/null
+rm $pkg > /dev/null
 mkdir -p $dest
 
-for folder in "$dir"/*; do
+for folder in $dir/*; do
   if [ -d "$folder" ]; then
-    foldername=$(basename "$folder")
-    filename="$dest/$foldername.tgz"
-    tar czf "$filename" "$folder"
-    echo "compress $foldername completed"
+    helm package "$folder" -d $dest/
   fi
 done
+
+tar czf third-charts.tar.gz third-charts
