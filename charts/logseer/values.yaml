@@ -15,7 +15,7 @@ storage:
 
 images:
   logseer_image: hub.c.163.com/qingzhou/logseer:v2.3.0
-  tools_images: zzy728418617/logseer-tools:20221205
+  tools_images: hub.c.163.com/kubecube/logseer-tools:v2.3.0
 
 # required
 ## es版本号：可为v6，或者v7（arm架构默认部署es为v7）
